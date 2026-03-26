@@ -1,13 +1,27 @@
 
 package com.example.attendance.controller;
 
+import com.example.attendance.service.StudentService;
 import org.springframework.web.bind.annotation.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import com.example.attendance.pojo.Student;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PostMapping;
 
 @RestController
 public class StudentController {
+    @Autowired
+    private StudentService studentService;
+    // ===== 新功能 =====
+    @PostMapping("/add")
+    public String add(Student student) {
+        studentService.addStudent(student);
+        return "成功";
+    }
+
 
     // 任务一：GET /student/info
     @GetMapping("/student/info")
