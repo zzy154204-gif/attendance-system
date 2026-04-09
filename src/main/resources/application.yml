@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: attendance-system
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/attendance_system
+    username: postgres
+    password: 123456
+
+server:
+  port: 8080
