@@ -6,6 +6,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 @SpringBootTest
 class AttendanceSystemApplicationTests {
 
@@ -14,8 +17,13 @@ class AttendanceSystemApplicationTests {
 
     @Test
     void testInsert() {
-        // 1. 创建一个用户对象（这是你刚才在 Entity 里写的构造方法）
-        User user = new User("zy_student", "123456", "张同学", "STUDENT");
+        // 1. 创建一个用户对象（当前 User 使用 JPA 实体结构）
+        String suffix = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        User user = new User();
+        user.setUsername("zy_student_" + suffix);
+        user.setPassword("123456");
+        user.setRealName("张同学");
+        user.setRole("STUDENT");
 
         // 2. 调用你写的 save 方法
         userDao.save(user);

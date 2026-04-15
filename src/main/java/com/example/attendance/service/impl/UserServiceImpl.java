@@ -29,14 +29,13 @@ public class UserServiceImpl implements UserService {
     // 3. 根据 ID 查询
     @Override
     public User getById(Integer id) {
-        return userDao.getById(id);
+        return userDao.findById(id).orElse(null);
     }
 
     // 4. 更新用户
     @Override
-    public List<Object> update(User user) {
-        userDao.update(user);
-        return null;
+    public void update(User user) {
+        userDao.save(user);
     }
 
     // 5. 删除用户

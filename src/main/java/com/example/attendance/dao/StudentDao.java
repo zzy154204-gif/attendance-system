@@ -1,19 +1,11 @@
 package com.example.attendance.dao;
 
-import com.example.attendance.pojo.Student;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.attendance.entity.Student;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import org.springframework.jdbc.core.JdbcTemplate;
+
 @Repository
-public class StudentDao {
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
-    public void insert(Student student) {
-        String sql = "insert into student(name, age) values (?, ?)";
-        jdbcTemplate.update(sql,
-                student.getName(),
-                student.getAge());
-    }
+public interface StudentDao extends JpaRepository<Student, Long> {
+    // JpaRepository 已经提供了基础的 CRUD 方法
+    // save(), findById(), findAll(), delete() 等
 }
