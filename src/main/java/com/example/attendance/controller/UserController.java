@@ -1,11 +1,13 @@
 package com.example.attendance.controller;
 
+import com.example.attendance.common.Result;
 import com.example.attendance.entity.User;
 import com.example.attendance.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController // 告诉 Spring 这是一个返回 JSON 数据的接口控制器
 @RequestMapping("/user") // 这一组接口都以 /user 开头
@@ -13,6 +15,19 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    // 登录：POST /user/login   body: {"username":"xxx","password":"xxx"}
+    // TODO: 后续改用 BCrypt 加密存储密码（见 README 第一优先级）
+    @PostMapping("/login")
+    public Result<User> login(@RequestBody Map<String, String> body) {
+        String username = body.get("username");
+        String password = body.get("password");
+        User user = userService.getByUsername(username);
+        if (user == null || !user.getPassword().equals(password)) {
+            return Result.error(401, "用户名或密码错误");
+        }
+        return Result.success("登录成功", user);
+    }
 
     // 路径参数查询，访问地址：localhost:8080/user/info/zy_student
     @GetMapping("/info/{name}")
