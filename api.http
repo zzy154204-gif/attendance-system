@@ -8,6 +8,15 @@
 
 ### ============ User API ============
 
+### 0. 登录
+POST {{baseUrl}}/user/login
+Content-Type: application/json
+
+{
+  "username": "zy_student",
+  "password": "123456"
+}
+
 ### 1. 查询所有用户
 GET {{baseUrl}}/user/all
 
@@ -72,17 +81,41 @@ Content-Type: application/json
 ### 6. 删除学生
 DELETE {{baseUrl}}/students/1
 
+### ============ Attendance 考勤 API ============
+
+### 1. 签到（写入数据库）
+POST {{baseUrl}}/attendance/checkin
+Content-Type: application/json
+
+{
+  "studentId": 1,
+  "status": "正常"
+}
+
+### 2. 查询所有考勤记录
+GET {{baseUrl}}/attendance/all
+
+### 3. 查询某学生所有考勤记录
+GET {{baseUrl}}/attendance/student/1
+
+### 4. 按状态筛选（正常 / 迟到 / 缺勤）
+GET {{baseUrl}}/attendance/status/迟到
+
+### 5. 删除一条考勤记录
+DELETE {{baseUrl}}/attendance/1
+
 ### ============ Student 演示功能 ============
 
 ### 1. 获取学生信息（演示）
 GET {{baseUrl}}/student/info
 
-### 2. 学生打卡
+### 2. 学生打卡（兼容旧路径，写入数据库）
 POST {{baseUrl}}/student/attendance
 Content-Type: application/json
 
 {
-  "studentId": "42411134"
+  "studentId": "1",
+  "status": "正常"
 }
 
 ### 3. 查询学生课程

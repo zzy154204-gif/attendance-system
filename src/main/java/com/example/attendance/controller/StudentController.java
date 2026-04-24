@@ -1,7 +1,10 @@
 
 package com.example.attendance.controller;
 
+import com.example.attendance.common.Result;
+import com.example.attendance.entity.Attendance;
 import com.example.attendance.entity.Student;
+import com.example.attendance.service.AttendanceService;
 import com.example.attendance.service.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +16,9 @@ import java.util.Map;
 public class StudentController {
     @Autowired
     private StudentService studentService;
+
+    @Autowired
+    private AttendanceService attendanceService;
 
     // 兼容旧路径 /add，同时支持 REST 风格 /students
     @PostMapping({"/add", "/students"})
@@ -58,11 +64,13 @@ public class StudentController {
         );
     }
 
-    // 任务二：POST /student/attendance
+    // 任务二：POST /student/attendance  （实际写入数据库）
     @PostMapping("/student/attendance")
-    public String attendance(@RequestBody Map<String, String> body) {
-        String studentId = body.get("studentId");
-        return "学号为 " + studentId + " 的学生打卡成功！";
+    public Result<Attendance> attendance(@RequestBody Map<String, Object> body) {
+        Long studentId = Long.valueOf(body.get("studentId").toString());
+        String status = (String) body.getOrDefault("status", "正常");
+        Attendance record = attendanceService.checkIn(studentId, status);
+        return Result.success("学号为 " + studentId + " 的学生打卡成功！", record);
     }
 
     // 任务三：GET /student/courses
