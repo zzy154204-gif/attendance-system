@@ -4,6 +4,8 @@ import com.example.attendance.dao.StudentDao;
 import com.example.attendance.entity.Student;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -21,6 +23,15 @@ public class StudentServiceImpl implements StudentService {
     @Override
     public List<Student> getAllStudents() {
         return studentDao.findAll();
+    }
+
+    @Override
+    public Page<Student> findPage(String keyword, Pageable pageable) {
+        if (keyword == null || keyword.isBlank()) {
+            return studentDao.findAll(pageable);
+        }
+        String trimmed = keyword.trim();
+        return studentDao.findByNameContainingIgnoreCaseOrStudentNumberContainingIgnoreCase(trimmed, trimmed, pageable);
     }
 
     @Override

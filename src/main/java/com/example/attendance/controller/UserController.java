@@ -7,38 +7,66 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@RestController // 告诉 Spring 这是一个返回 JSON 数据的接口控制器
-@RequestMapping("/user") // 这一组接口都以 /user 开头
+/**
+ * 用户信息管理接口。
+ */
+@RestController
+@RequestMapping("/user")
 public class UserController {
 
     @Autowired
     private UserService userService;
 
-    // 路径参数查询，访问地址：localhost:8080/user/info/zy_student
+    /**
+     * 根据用户名查询用户信息。
+     *
+     * @param name 用户名
+     * @return 用户信息
+     */
     @GetMapping("/info/{name}")
     public User getUserInfo(@PathVariable("name") String name) {
         return userService.getByUsername(name);
     }
-    // 查詢所有：GET http://localhost:8080/user/all
+
+    /**
+     * 查询全部用户。
+     *
+     * @return 用户列表
+     */
     @GetMapping("/all")
     public List<User> getAll() {
         return userService.getAllUsers();
     }
 
-    // 根據 ID 查詢：GET http://localhost:8080/user/id/1
+    /**
+     * 按主键 ID 查询用户。
+     *
+     * @param id 用户主键
+     * @return 用户信息
+     */
     @GetMapping("/id/{id}")
     public User getById(@PathVariable("id") Integer id) {
         return userService.getById(id);
     }
 
-    // 更新：PUT http://localhost:8080/user/update
+    /**
+     * 更新用户信息。
+     *
+     * @param user 用户数据
+     * @return 操作结果
+     */
     @PutMapping("/update")
     public String update(@RequestBody User user) {
         userService.update(user);
         return "更新成功！";
     }
 
-    // 刪除：DELETE http://localhost:8080/user/delete/1
+    /**
+     * 删除用户。
+     *
+     * @param id 用户主键
+     * @return 操作结果
+     */
     @DeleteMapping("/delete/{id}")
     public String delete(@PathVariable("id") Integer id) {
         userService.delete(id);

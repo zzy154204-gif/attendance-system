@@ -8,4 +8,9 @@ import org.springframework.stereotype.Repository;
 public interface StudentDao extends JpaRepository<Student, Long> {
     // JpaRepository 已经提供了基础的 CRUD 方法
     // save(), findById(), findAll(), delete() 等
+    org.springframework.data.domain.Page<Student> findByNameContainingIgnoreCaseOrStudentNumberContainingIgnoreCase(
+            String name,
+            String studentNumber,
+            org.springframework.data.domain.Pageable pageable
+    );
 }

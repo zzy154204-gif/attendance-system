@@ -1,6 +1,11 @@
 package com.example.attendance.entity;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*; // 注意：如果是Spring Boot 3.x，使用jakarta
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import org.springframework.format.annotation.DateTimeFormat;
 import lombok.Data;
 
 import java.util.List;
@@ -14,13 +19,30 @@ public class Student {
     private Long id;
 
     @Column(nullable = false, unique = true)
+    @NotBlank(message = "studentNumber 不能为空")
     private String studentNumber;
 
     @Column(length = 50)
+    @NotBlank(message = "name 不能为空")
     private String name;
 
+    // 兼容前端传 class 字段，实体仍然用 clazz 避开 Java 关键字冲突。
+    @JsonAlias("class")
     private String clazz;
+
+    @Column(length = 10)
+    @NotBlank(message = "gender 不能为空")
+    private String gender;
+
+    @NotNull(message = "birthDate 不能为空")
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    private java.time.LocalDate birthDate;
+
+    @Column(length = 50)
+    @NotBlank(message = "contact 不能为空")
+    private String contact;
     // 在 Student 类中添加
     @OneToMany(mappedBy = "student", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Attendance> attendances;
 }
