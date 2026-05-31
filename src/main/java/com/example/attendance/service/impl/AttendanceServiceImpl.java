@@ -49,25 +49,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         Pageable pageable = PageRequest.of(page, size, buildSort(sortBy, direction));
 
         // 多条件查询功能添加：动态拼接 where 条件，未传参数就不参与过滤。
-        Specification<Attendance> specification = (root, query, cb) -> {
-            List<Predicate> predicates = new ArrayList<>();
-
-            // 多条件查询增强：统一按学号过滤，接口语义与业务字段一致。
-            if (studentNumber != null && !studentNumber.isBlank()) {
-                predicates.add(cb.equal(root.get("student").get("studentNumber"), studentNumber));
-            }
-            if (status != null && !status.isBlank()) {
-                predicates.add(cb.equal(root.get("status"), status));
-            }
-            if (startTime != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("checkInTime"), startTime));
-            }
-            if (endTime != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("checkInTime"), endTime));
-            }
-
-            return cb.and(predicates.toArray(new Predicate[0]));
-        };
+        Specification<Attendance> specification = buildSpecification(studentNumber, status, null, startTime, endTime);
 
         Page<AttendanceView> result = attendanceRepository.findAll(specification, pageable)
                 .map(this::toView);
@@ -81,6 +63,38 @@ public class AttendanceServiceImpl implements AttendanceService {
                 result.isFirst(),
                 result.isLast()
         );
+    }
+
+    @Override
+    @Transactional
+    public Attendance saveAttendance(Attendance attendance) {
+        return attendanceRepository.save(attendance);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Attendance> findAttendancePage(
+            String studentNumber,
+            String status,
+            Integer courseId,
+            LocalDateTime startTime,
+            LocalDateTime endTime,
+            Pageable pageable
+    ) {
+        return attendanceRepository.findAll(buildSpecification(studentNumber, status, courseId, startTime, endTime), pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Attendance> findAttendanceList(
+            String studentNumber,
+            String status,
+            Integer courseId,
+            LocalDateTime startTime,
+            LocalDateTime endTime
+    ) {
+        return attendanceRepository.findAll(buildSpecification(studentNumber, status, courseId, startTime, endTime),
+                Sort.by(Sort.Direction.DESC, "checkInTime"));
     }
 
     /**
@@ -100,6 +114,36 @@ public class AttendanceServiceImpl implements AttendanceService {
                 studentNumber,
                 studentName
         );
+    }
+
+    private Specification<Attendance> buildSpecification(
+            String studentNumber,
+            String status,
+            Integer courseId,
+            LocalDateTime startTime,
+            LocalDateTime endTime
+    ) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (studentNumber != null && !studentNumber.isBlank()) {
+                predicates.add(cb.equal(root.get("student").get("studentNumber"), studentNumber));
+            }
+            if (status != null && !status.isBlank()) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+            if (courseId != null) {
+                predicates.add(cb.equal(root.get("courseId"), courseId));
+            }
+            if (startTime != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("checkInTime"), startTime));
+            }
+            if (endTime != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("checkInTime"), endTime));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
     }
 
     /**

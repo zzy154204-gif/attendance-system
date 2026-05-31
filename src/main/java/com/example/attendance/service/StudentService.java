@@ -51,4 +51,12 @@ public interface StudentService {
      * @param id 学生主键
      */
     void deleteStudent(Long id);
+
+    /**
+     * 按学号查询学生。
+     *
+     * @param studentNumber 学号
+     * @return 学生实体
+     */
+    Student getStudentByStudentNumber(String studentNumber);
 }

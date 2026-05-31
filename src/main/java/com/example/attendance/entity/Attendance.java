@@ -21,6 +21,18 @@ public class Attendance {
 
     private String status; // 状态：比如 "正常", "迟到", "缺勤"
 
+    @Column(name = "course_id")
+    private Integer courseId;
+
+    @Column(name = "course_name", length = 100)
+    private String courseName;
+
+    @Column(length = 200)
+    private String remark;
+
+    @Column(name = "create_time")
+    private LocalDateTime createTime;
+
     // 【核心重点】建立与 Student 的关联
     @ManyToOne(fetch = FetchType.LAZY) // 设置懒加载，提高性能
     @JoinColumn(name = "student_id")   // 在数据库表中生成的物理外键列名

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>教师端 - 学生考勤系统</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.0/css/bootstrap.min.css}" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+</head>
+<body class="bg-light">
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<div class="container py-5">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h3 class="card-title">教师端</h3>
+            <p class="text-muted" th:text="${welcomeMsg}">教师端欢迎你</p>
+            <div class="alert alert-warning">你正在使用教师端</div>
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-info" th:href="@{/attendance/list}"><i class="bi bi-card-list"></i> 考勤记录</a>
+                <a class="btn btn-outline-success" th:href="@{/attendance/export}"><i class="bi bi-download"></i> 导出记录</a>
+                <a class="btn btn-warning" th:href="@{/attendance/import}"><i class="bi bi-upload"></i> 批量导入</a>
+                <a class="btn btn-primary" th:href="@{/student/list}"><i class="bi bi-people"></i> 学生列表</a>
+                <a class="btn btn-success" th:href="@{/student/add}"><i class="bi bi-person-plus"></i> 新增学生</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/theme-script :: scripts}"></div>
+</body>
+</html>

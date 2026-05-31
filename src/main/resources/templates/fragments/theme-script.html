@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="scripts">
+    <script th:src="@{/webjars/bootstrap/5.3.0/js/bootstrap.bundle.min.js}"></script>
+    <script>
+      (function () {
+        var stored = localStorage.getItem("theme");
+        if (stored) {
+          document.documentElement.setAttribute("data-bs-theme", stored);
+        }
+        var btn = document.getElementById("themeToggle");
+        if (btn) {
+          btn.addEventListener("click", function () {
+            var current = document.documentElement.getAttribute("data-bs-theme") || "light";
+            var next = current === "light" ? "dark" : "light";
+            document.documentElement.setAttribute("data-bs-theme", next);
+            localStorage.setItem("theme", next);
+          });
+        }
+      })();
+    </script>
+</div>
+</body>
+</html>
+

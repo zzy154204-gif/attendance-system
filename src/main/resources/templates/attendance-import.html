@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>批量导入考勤记录</title>
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.0/css/bootstrap.min.css}" />
+</head>
+<body>
+<div class="container mt-4">
+    <h2>批量导入考勤记录</h2>
+    <form th:action="@{/attendance/import}" method="post" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label class="form-label">选择Excel文件：</label>
+            <input type="file" class="form-control" name="file" accept=".xlsx,.xls" required />
+            <div class="form-text">支持.xlsx和.xls格式，文件大小不超过10MB</div>
+        </div>
+        <div class="mb-3">
+            <a href="/template/attendance.xlsx" class="btn btn-secondary">下载模板</a>
+        </div>
+        <button type="submit" class="btn btn-primary">上传并导入</button>
+    </form>
+    <div th:if="${error}" class="alert alert-danger mt-3" th:text="${error}"></div>
+    <div th:if="${success}" class="alert alert-success mt-3" th:text="${success}"></div>
+</div>
+</body>
+</html>
+

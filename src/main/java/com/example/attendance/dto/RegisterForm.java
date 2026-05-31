@@ -6,7 +6,8 @@ package com.example.attendance.dto;
 public record RegisterForm(
         String username,
         String password,
-        String confirmPassword
+        String confirmPassword,
+        String role
 ) {
 }
 

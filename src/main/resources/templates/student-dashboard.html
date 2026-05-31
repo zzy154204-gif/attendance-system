@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>学生端 - 学生考勤系统</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.0/css/bootstrap.min.css}" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+</head>
+<body class="bg-light">
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<div class="container py-5">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h3 class="card-title">学生端</h3>
+            <p class="text-muted" th:text="${welcomeMsg}">学生端欢迎你</p>
+            <div class="alert alert-success">你正在使用学生端</div>
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-warning" th:href="@{/attendance/checkIn}"><i class="bi bi-clock"></i> 考勤打卡</a>
+                <a class="btn btn-info" th:href="@{/attendance/list}"><i class="bi bi-card-list"></i> 我的记录</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/theme-script :: scripts}"></div>
+</body>
+</html>
+

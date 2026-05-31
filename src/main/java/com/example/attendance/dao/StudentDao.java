@@ -13,4 +13,6 @@ public interface StudentDao extends JpaRepository<Student, Long> {
             String studentNumber,
             org.springframework.data.domain.Pageable pageable
     );
+
+    Student findByStudentNumber(String studentNumber);
 }

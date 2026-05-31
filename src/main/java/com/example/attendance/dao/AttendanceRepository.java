@@ -10,7 +10,7 @@ import java.util.List;
 public interface AttendanceRepository extends JpaRepository<Attendance, Long>, JpaSpecificationExecutor<Attendance> {
 
     // 任务三要求的“自定义查询”：根据学生 ID 查询该生的所有考勤记录
-    List<Attendance> findByStudentId(Long studentId);
+    List<Attendance> findByStudent_Id(Long studentId);
 
     // 你甚至可以根据状态查询
     List<Attendance> findByStatus(String status);

@@ -71,5 +71,5 @@ public interface UserService {
      * @param confirmPassword 确认密码
      * @return 用户实体
      */
-    User registerWithConfirm(String username, String password, String confirmPassword);
+    User registerWithConfirm(String username, String password, String confirmPassword, String role);
 }

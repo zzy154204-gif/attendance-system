@@ -48,4 +48,12 @@ public class StudentServiceImpl implements StudentService {
     public void deleteStudent(Long id) {
         studentDao.deleteById(id);
     }
+
+    @Override
+    public Student getStudentByStudentNumber(String studentNumber) {
+        if (studentNumber == null || studentNumber.isBlank()) {
+            return null;
+        }
+        return studentDao.findByStudentNumber(studentNumber.trim());
+    }
 }

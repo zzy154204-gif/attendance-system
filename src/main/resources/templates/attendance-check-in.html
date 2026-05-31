@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>考勤打卡 - 学生考勤系统</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.0/css/bootstrap.min.css}" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+</head>
+<body class="bg-light">
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<div class="container py-4">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h3 class="card-title mb-3"><i class="bi bi-clock"></i> 考勤打卡</h3>
+
+            <div class="alert alert-success" th:if="${successMsg}" th:text="${successMsg}"></div>
+            <div class="alert alert-danger" th:if="${errorMsg}" th:text="${errorMsg}"></div>
+
+            <form th:action="@{/attendance/checkIn}" method="post">
+                <div class="mb-3">
+                    <label class="form-label">选择课程：</label>
+                    <select class="form-select" name="courseId" required>
+                        <option value="">请选择课程</option>
+                        <option th:each="course : ${courses}"
+                                th:value="${course.id}"
+                                th:text="${course.name} + '（' + ${course.startTime} + ' 开始）'">
+                            Java程序设计
+                        </option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">打卡时间：</label>
+                    <input type="datetime-local" class="form-control"
+                           th:value="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd''T''HH:mm')}" readonly />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">备注：</label>
+                    <textarea class="form-control" name="remark" rows="3" placeholder="可填写原因或说明"></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary">提交打卡</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/theme-script :: scripts}"></div>
+</body>
+</html>
+

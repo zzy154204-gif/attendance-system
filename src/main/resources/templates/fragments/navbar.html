@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<body>
+<nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom" th:fragment="navbar">
+    <div class="container-xl">
+        <a class="navbar-brand fw-semibold" th:href="@{/dashboard}">
+            <i class="bi bi-mortarboard"></i> 学生考勤系统
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="topNav">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item"><a class="nav-link" th:href="@{/dashboard}"><i class="bi bi-house"></i> 首页</a></li>
+                <li class="nav-item"><a class="nav-link" th:href="@{/attendance/checkIn}"><i class="bi bi-clock"></i> 考勤打卡</a></li>
+                <li class="nav-item"><a class="nav-link" th:href="@{/attendance/list}"><i class="bi bi-card-list"></i> 考勤记录</a></li>
+                <li class="nav-item"><a class="nav-link text-warning fw-semibold" th:href="@{/attendance/import}"><i class="bi bi-upload"></i> 批量导入</a></li>
+                <li class="nav-item"><a class="nav-link text-warning fw-semibold" th:href="@{/attendance/export}"><i class="bi bi-download"></i> 导出记录</a></li>
+                <li class="nav-item"><a class="nav-link" th:href="@{/student/list}"><i class="bi bi-people"></i> 学生列表</a></li>
+                <li class="nav-item"><a class="nav-link text-warning fw-semibold" th:href="@{/student/add}"><i class="bi bi-person-plus"></i> 新增学生</a></li>
+                <li class="nav-item"><a class="nav-link text-warning fw-semibold" th:href="@{/teacher/dashboard}"><i class="bi bi-briefcase"></i> 教师端</a></li>
+                <li class="nav-item"><a class="nav-link" th:href="@{/student/dashboard}"><i class="bi bi-mortarboard"></i> 学生端</a></li>
+            </ul>
+            <div class="d-flex gap-2 align-items-center">
+                <button class="btn btn-outline-secondary btn-sm" type="button" id="themeToggle">
+                    <i class="bi bi-moon-stars"></i> 主题
+                </button>
+                <a class="btn btn-outline-danger btn-sm" th:href="@{/logout}">
+                    <i class="bi bi-box-arrow-right"></i> 退出
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<nav class="navbar bg-body-tertiary border-bottom" th:fragment="navbarPublic">
+    <div class="container-xl">
+        <a class="navbar-brand fw-semibold" th:href="@{/login}">
+            <i class="bi bi-mortarboard"></i> 学生考勤系统
+        </a>
+        <button class="btn btn-outline-secondary btn-sm" type="button" id="themeToggle">
+            <i class="bi bi-moon-stars"></i> 主题
+        </button>
+    </div>
+</nav>
+</body>
+</html>

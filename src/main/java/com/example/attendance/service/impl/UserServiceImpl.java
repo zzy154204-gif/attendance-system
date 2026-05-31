@@ -73,7 +73,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User registerWithConfirm(String username, String password, String confirmPassword) {
+    public User registerWithConfirm(String username, String password, String confirmPassword, String role) {
         // 注册页面校验添加：确认两次密码一致后再调用注册逻辑。
         if (username == null || username.isBlank()) {
             throw new IllegalArgumentException("用户名不能为空");
@@ -85,7 +85,7 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("两次输入的密码不一致");
         }
         // 页面注册未填写姓名时，用用户名作为默认展示名。
-        RegisterRequest request = new RegisterRequest(username, password, username, "STUDENT");
+        RegisterRequest request = new RegisterRequest(username, password, username, normalizeRole(role));
         return register(request);
     }
 

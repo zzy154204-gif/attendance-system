@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>403 Forbidden</title>
+    <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="fragments/navbar :: navbarPublic"></div>
+<div class="container mt-5 text-center">
+    <h1 class="display-3 text-danger">403</h1>
+    <h2>来错地方了！</h2>
+    <p class="lead">您没有权限访问此页面。请返回首页或联系管理员。</p>
+    <a class="btn btn-primary mt-3" th:href="@{/dashboard}">返回首页</a>
+</div>
+<div th:replace="fragments/theme-script :: scripts"></div>
+</body>
+</html>
+
