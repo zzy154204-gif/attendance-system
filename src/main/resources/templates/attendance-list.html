@@ -19,6 +19,15 @@
         </a>
     </div>
 
+    <div class="alert alert-success alert-dismissible fade show" th:if="${successMsg}" role="alert">
+        <span th:text="${successMsg}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <div class="alert alert-danger alert-dismissible fade show" th:if="${errorMsg}" role="alert">
+        <span th:text="${errorMsg}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
     <div class="card shadow-sm mb-3">
         <div class="card-body">
             <form th:action="@{/attendance/list}" method="get" class="row g-2 align-items-end">

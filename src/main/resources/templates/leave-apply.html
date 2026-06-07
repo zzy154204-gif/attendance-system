@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>请假申请 - 课堂考勤系统</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.0/css/bootstrap.min.css}" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+</head>
+<body class="bg-light">
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h3 class="card-title mb-3">
+                        <i class="bi bi-file-earmark-text me-2"></i>请假申请
+                    </h3>
+
+                    <div class="alert alert-success" th:if="${successMsg}" th:text="${successMsg}"></div>
+                    <div class="alert alert-danger" th:if="${errorMsg}" th:text="${errorMsg}"></div>
+
+                    <form th:action="@{/leave/apply}" method="post">
+                        <div class="mb-3">
+                            <label class="form-label">选择课程 <span class="text-danger">*</span></label>
+                            <select class="form-select" name="courseId" required>
+                                <option value="">请选择课程</option>
+                                <option th:each="course : ${courses}"
+                                        th:value="${course.id}"
+                                        th:text="${course.name} + '（' + ${course.startTime} + ' 开始）'">
+                                    Java程序设计
+                                </option>
+                            </select>
+                            <div class="form-text">选择需要请假的课程（可选"全部课程"表示全天请假）</div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">开始时间 <span class="text-danger">*</span></label>
+                                <input type="datetime-local" class="form-control" name="startTime" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">结束时间 <span class="text-danger">*</span></label>
+                                <input type="datetime-local" class="form-control" name="endTime" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">请假原因 <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="reason" rows="3"
+                                      placeholder="请详细说明请假原因（如：身体不适、家庭事务等）" required></textarea>
+                            <div class="form-text">请假时间不能超过3天，且不能请假过去的日期。</div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-send me-1"></i>提交申请
+                            </button>
+                            <a th:href="@{/leave/list}" class="btn btn-outline-secondary">查看记录</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mt-4">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-info-circle me-2"></i>请假须知</h5>
+                    <ul class="mb-0">
+                        <li>请假申请提交后需等待教师或管理员审批</li>
+                        <li>单次请假时长不得超过3天</li>
+                        <li>同一时间段内不能重复请假</li>
+                        <li>已批准的请假记录会在考勤统计中标记</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/theme-script :: scripts}"></div>
+</body>
+</html>

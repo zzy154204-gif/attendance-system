@@ -1,5 +1,6 @@
 package com.example.attendance.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,6 +19,7 @@ public class User {
     @Column(name = "username", nullable = false, unique = true)
     private String username;
 
+    @JsonIgnore
     @Column(name = "password")
     private String password;
 

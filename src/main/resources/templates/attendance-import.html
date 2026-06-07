@@ -10,6 +10,14 @@
     <h2>批量导入考勤记录</h2>
     <form th:action="@{/attendance/import}" method="post" enctype="multipart/form-data">
         <div class="mb-3">
+            <label class="form-label">选择课程：</label>
+            <select class="form-select" name="courseId" required>
+                <option value="">请选择课程</option>
+                <option th:each="course : ${courses}" th:value="${course.id}"
+                        th:text="${course.name} + '（' + ${course.startTime} + ' 开始）'"></option>
+            </select>
+        </div>
+        <div class="mb-3">
             <label class="form-label">选择Excel文件：</label>
             <input type="file" class="form-control" name="file" accept=".xlsx,.xls" required />
             <div class="form-text">支持.xlsx和.xls格式，文件大小不超过10MB</div>
@@ -24,4 +32,3 @@
 </div>
 </body>
 </html>
-

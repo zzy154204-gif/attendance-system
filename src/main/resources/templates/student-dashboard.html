@@ -2,29 +2,181 @@
 <html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>学生端 - 学生考勤系统</title>
+    <title>学生端 — 课堂考勤系统</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.0/css/bootstrap.min.css}" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+    <style>
+        .stat-card {
+            border: none;
+            border-radius: 16px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-4px); box-shadow: 0 8px 25px rgba(0,0,0,0.12); }
+        .stat-icon { font-size: 2.5rem; opacity: 0.7; }
+        .stat-value { font-size: 2rem; font-weight: 700; line-height: 1.2; }
+        .stat-label { font-size: 0.85rem; color: rgba(255,255,255,0.85); }
+        .bg-gradient-blue { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .bg-gradient-green { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .bg-gradient-red { background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); }
+        .bg-gradient-purple { background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); }
+        .bg-gradient-teal { background: linear-gradient(135deg, #0ba360 0%, #3cba92 100%); }
+        .rate-bar { height: 10px; border-radius: 5px; }
+        .checkin-status-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+    </style>
 </head>
-<body class="bg-light">
+<body class="bg-light min-vh-100">
 <div th:replace="~{fragments/navbar :: navbar}"></div>
 
-<div class="container py-5">
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <h3 class="card-title">学生端</h3>
-            <p class="text-muted" th:text="${welcomeMsg}">学生端欢迎你</p>
-            <div class="alert alert-success">你正在使用学生端</div>
-            <div class="d-flex flex-wrap gap-2">
-                <a class="btn btn-warning" th:href="@{/attendance/checkIn}"><i class="bi bi-clock"></i> 考勤打卡</a>
-                <a class="btn btn-info" th:href="@{/attendance/list}"><i class="bi bi-card-list"></i> 我的记录</a>
+<div class="container-xl py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-1"><i class="bi bi-mortarboard-fill text-success me-2"></i>学生中心</h3>
+            <p class="text-muted mb-0">欢迎，<span th:text="${welcomeMsg}" class="fw-medium">同学</span></p>
+        </div>
+        <a class="btn btn-warning rounded-pill px-4" th:href="@{/attendance/checkIn}">
+            <i class="bi bi-check-circle me-1"></i>立即打卡
+        </a>
+    </div>
+
+    <!-- Stat Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card bg-gradient-blue text-white p-3 h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-value" th:text="${stats?.monthTotal() ?: 0}">0</div>
+                        <div class="stat-label">本月打卡次数</div>
+                    </div>
+                    <i class="bi bi-calendar-check-fill stat-icon"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card bg-gradient-green text-white p-3 h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-value" th:text="${stats?.monthNormal() ?: 0}">0</div>
+                        <div class="stat-label">正常出勤</div>
+                    </div>
+                    <i class="bi bi-check-circle-fill stat-icon"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card bg-gradient-red text-white p-3 h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-value" th:text="${stats?.monthLate() ?: 0}">0</div>
+                        <div class="stat-label">迟到次数</div>
+                    </div>
+                    <i class="bi bi-exclamation-triangle-fill stat-icon"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card bg-gradient-purple text-white p-3 h-100"
+                 th:classappend="${(stats?.monthRate() ?: 100) < 60} ? ' bg-gradient-red' : ' bg-gradient-purple'">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-value" th:text="${(stats?.monthRate() ?: 100) + '%'}">100%</div>
+                        <div class="stat-label">出勤率</div>
+                    </div>
+                    <i class="bi bi-graph-up-arrow stat-icon"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- Attendance Progress -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 rounded-4 h-100">
+                <div class="card-header bg-white border-0 pt-3 pb-0">
+                    <h5 class="fw-bold"><i class="bi bi-bar-chart me-2 text-primary"></i>本月出勤详情</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 mb-4">
+                        <div class="col-6 col-md-3 text-center">
+                            <div class="bg-light rounded-3 p-3">
+                                <div class="fs-3 fw-bold text-primary" th:text="${stats?.monthTotal() ?: 0}">0</div>
+                                <small class="text-muted">总打卡</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3 text-center">
+                            <div class="bg-light rounded-3 p-3">
+                                <div class="fs-3 fw-bold text-success" th:text="${stats?.monthNormal() ?: 0}">0</div>
+                                <small class="text-muted">正常</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3 text-center">
+                            <div class="bg-light rounded-3 p-3">
+                                <div class="fs-3 fw-bold text-danger" th:text="${stats?.monthLate() ?: 0}">0</div>
+                                <small class="text-muted">迟到</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3 text-center">
+                            <div class="bg-light rounded-3 p-3">
+                                <div class="fs-3 fw-bold text-info" th:text="${stats?.todayCheckedIn() ?: 0}">0</div>
+                                <small class="text-muted">今日已打卡</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between small text-muted mb-1">
+                        <span>出勤率</span>
+                        <span th:text="${(stats?.monthRate() ?: 100) + '%'}">100%</span>
+                    </div>
+                    <div class="progress rate-bar">
+                        <div class="progress-bar" role="progressbar"
+                             th:classappend="${(stats?.monthRate() ?: 100) >= 80} ? 'bg-success' :
+                                            (${(stats?.monthRate() ?: 100) >= 60} ? 'bg-warning' : 'bg-danger')"
+                             th:style="'width:' + ${stats?.monthRate() ?: 100} + '%'"
+                             th:attr="aria-valuenow=${stats?.monthRate() ?: 100}"></div>
+                    </div>
+                    <div class="mt-4 p-3 bg-light rounded-3">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle me-1"></i>
+                            提示：按时打卡（课程开始前15分钟到开始后30分钟内）记为<strong>正常</strong>，超过课程开始时间记为<strong>迟到</strong>。
+                            保持良好的出勤记录对期末成绩有重要影响。
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Today & Quick Links -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 rounded-4 h-100">
+                <div class="card-header bg-white border-0 pt-3 pb-0">
+                    <h5 class="fw-bold"><i class="bi bi-lightning-charge me-2 text-warning"></i>快捷操作</h5>
+                </div>
+                <div class="card-body d-flex flex-column gap-2">
+                    <a class="btn btn-warning text-start fw-medium" th:href="@{/attendance/checkIn}">
+                        <i class="bi bi-check-circle me-2"></i>去打卡
+                    </a>
+                    <a class="btn btn-outline-info text-start" th:href="@{/attendance/list}">
+                        <i class="bi bi-list-ul me-2"></i>查看我的记录
+                    </a>
+                    <a class="btn btn-outline-primary text-start" th:href="@{/attendance/list(range='month')}">
+                        <i class="bi bi-calendar-month me-2"></i>本月考勤
+                    </a>
+                    <hr>
+                    <div class="bg-light rounded-3 p-3">
+                        <small class="text-muted fw-bold d-block mb-2">
+                            <i class="bi bi-clock me-1"></i>今日可打卡课程
+                        </small>
+                        <div class="d-flex flex-column gap-1">
+                            <span class="small">☀️ Java程序设计 — 08:00</span>
+                            <span class="small">☀️ 数据库原理 — 10:00</span>
+                            <span class="small">🌤️ Java EE开发 — 14:00</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<div th:replace="~{fragments/theme-script :: scripts}"></div>
 </body>
 </html>
-

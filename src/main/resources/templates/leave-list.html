@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>请假记录 - 课堂考勤系统</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.0/css/bootstrap.min.css}" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+</head>
+<body class="bg-light">
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>请假记录</h3>
+        <a class="btn btn-primary" th:href="@{/leave/apply}">
+            <i class="bi bi-plus-circle me-1"></i>申请请假
+        </a>
+    </div>
+
+    <div class="alert alert-success alert-dismissible fade show" th:if="${successMsg}" role="alert">
+        <span th:text="${successMsg}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <div class="alert alert-danger alert-dismissible fade show" th:if="${errorMsg}" role="alert">
+        <span th:text="${errorMsg}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <!-- 状态筛选（教师端） -->
+    <div class="card shadow-sm mb-3" th:if="${isTeacher}">
+        <div class="card-body">
+            <form th:action="@{/leave/list}" method="get" class="row g-2 align-items-end">
+                <div class="col-auto">
+                    <label class="form-label">状态筛选</label>
+                    <select class="form-select" name="status" onchange="this.form.submit()">
+                        <option value="">全部</option>
+                        <option value="PENDING" th:selected="${status == 'PENDING'}">待审批</option>
+                        <option value="APPROVED" th:selected="${status == 'APPROVED'}">已批准</option>
+                        <option value="REJECTED" th:selected="${status == 'REJECTED'}">已拒绝</option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <a class="btn btn-outline-secondary" th:href="@{/leave/list}">清除筛选</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>学号</th>
+                    <th>姓名</th>
+                    <th>课程</th>
+                    <th>开始时间</th>
+                    <th>结束时间</th>
+                    <th>原因</th>
+                    <th>状态</th>
+                    <th>申请时间</th>
+                    <th th:if="${isTeacher}">操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="record : ${records}">
+                    <td th:text="${record.student?.studentNumber}">20240001</td>
+                    <td th:text="${record.student?.name}">张三</td>
+                    <td th:text="${record.courseName}">Java程序设计</td>
+                    <td th:text="${#temporals.format(record.startTime, 'yyyy-MM-dd HH:mm')}">2024-01-01 08:00</td>
+                    <td th:text="${#temporals.format(record.endTime, 'yyyy-MM-dd HH:mm')}">2024-01-01 10:00</td>
+                    <td th:text="${record.reason}">身体不适</td>
+                    <td>
+                        <span class="badge"
+                              th:classappend="${record.status == 'APPROVED'} ? ' bg-success' :
+                                             (${record.status == 'REJECTED'} ? ' bg-danger' : ' bg-warning text-dark')"
+                              th:text="${record.status == 'APPROVED'} ? '已批准' :
+                                       (${record.status == 'REJECTED'} ? '已拒绝' : '待审批')">
+                            待审批
+                        </span>
+                    </td>
+                    <td th:text="${#temporals.format(record.applyTime, 'yyyy-MM-dd HH:mm')}">2024-01-01</td>
+                    <td th:if="${isTeacher}">
+                        <div th:if="${record.status == 'PENDING'}" class="d-flex gap-1">
+                            <form th:action="@{/leave/approve/{id}(id=${record.id})}" method="post" style="display:inline">
+                                <input type="hidden" name="approved" value="true">
+                                <input type="hidden" name="remark" value="">
+                                <button type="submit" class="btn btn-sm btn-success"
+                                        onclick="return confirm('确认批准该请假申请？')">
+                                    <i class="bi bi-check-lg"></i> 批准
+                                </button>
+                            </form>
+                            <form th:action="@{/leave/approve/{id}(id=${record.id})}" method="post" style="display:inline">
+                                <input type="hidden" name="approved" value="false">
+                                <input type="hidden" name="remark" value="">
+                                <button type="submit" class="btn btn-sm btn-danger"
+                                        onclick="var r=prompt('请输入拒绝原因：');if(r==null)return false;this.form.remark.value=r;return true;">
+                                    <i class="bi bi-x-lg"></i> 拒绝
+                                </button>
+                            </form>
+                        </div>
+                        <small th:if="${record.status != 'PENDING'}" class="text-muted">
+                            已处理 <span th:if="${record.approver}">by [[${record.approver}]]</span>
+                        </small>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(records)}">
+                    <td colspan="9" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox fs-3 d-block mb-2"></i>暂无请假记录
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 分页 -->
+    <nav class="mt-3" th:if="${totalPages > 1}">
+        <ul class="pagination justify-content-center">
+            <li class="page-item" th:classappend="${currentPage == 1} ? 'disabled'">
+                <a class="page-link" th:href="@{/leave/list(page=${currentPage - 1}, status=${status})}">上一页</a>
+            </li>
+            <li class="page-item" th:each="i : ${#numbers.sequence(1, totalPages)}"
+                th:classappend="${i == currentPage} ? 'active'">
+                <a class="page-link" th:href="@{/leave/list(page=${i}, status=${status})}" th:text="${i}">1</a>
+            </li>
+            <li class="page-item" th:classappend="${currentPage == totalPages} ? 'disabled'">
+                <a class="page-link" th:href="@{/leave/list(page=${currentPage + 1}, status=${status})}">下一页</a>
+            </li>
+        </ul>
+    </nav>
+</div>
+
+<div th:replace="~{fragments/theme-script :: scripts}"></div>
+</body>
+</html>

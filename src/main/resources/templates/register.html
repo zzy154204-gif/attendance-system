@@ -28,9 +28,11 @@
                         <div class="mb-3">
                             <label class="form-label">角色</label>
                             <select class="form-select" name="role" required>
-                                <option value="STUDENT" th:selected="${form?.role} == 'STUDENT'">学生</option>
-                                <option value="TEACHER" th:selected="${form?.role} == 'TEACHER'">老师</option>
+                                <option value="STUDENT" th:selected="${form?.role == null or form?.role == 'STUDENT'}">🧑‍🎓 学生</option>
+                                <option value="TEACHER" th:selected="${form?.role == 'TEACHER'}">👨‍🏫 教师</option>
+                                <option value="ADMIN" th:selected="${form?.role == 'ADMIN'}">🛡️ 管理员</option>
                             </select>
+                            <div class="form-text">管理员拥有全部权限，可访问教师端和学生端的所有功能。</div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">密码</label>

@@ -56,4 +56,9 @@ public class StudentServiceImpl implements StudentService {
         }
         return studentDao.findByStudentNumber(studentNumber.trim());
     }
+
+    @Override
+    public long countStudents() {
+        return studentDao.count();
+    }
 }

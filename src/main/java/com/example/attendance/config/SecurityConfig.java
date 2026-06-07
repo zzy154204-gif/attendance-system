@@ -51,24 +51,39 @@ public class SecurityConfig {
                                 "/webjars/**"
                         )
                         .permitAll()
-                        // 学生端：允许打卡
+                        // 学生端：允许打卡（ADMIN 也可模拟）
                         .requestMatchers("/attendance/checkIn/**")
-                        .hasRole("STUDENT")
+                        .hasAnyRole("STUDENT", "ADMIN")
                         // 教师端：允许导出
                         .requestMatchers("/attendance/export/**")
-                        .hasRole("TEACHER")
+                        .hasAnyRole("TEACHER", "ADMIN")
                         // 学生端主页
                         .requestMatchers("/student/dashboard")
-                        .hasRole("STUDENT")
+                        .hasAnyRole("STUDENT", "ADMIN")
                         // 教师端：允许学生管理
                         .requestMatchers("/student/**")
-                        .hasRole("TEACHER")
-                        // 考勤记录：学生与教师都能访问
+                        .hasAnyRole("TEACHER", "ADMIN")
+                        // 考勤记录：所有角色都能访问
                         .requestMatchers("/attendance/list/**")
-                        .hasAnyRole("STUDENT", "TEACHER")
-                        // 教师端主页
+                        .hasAnyRole("STUDENT", "TEACHER", "ADMIN")
+                        // 教师端/管理员主页
                         .requestMatchers("/teacher/**")
-                        .hasRole("TEACHER")
+                        .hasAnyRole("TEACHER", "ADMIN")
+                        // 请假申请：学生和管理员可提交
+                        .requestMatchers("/leave/apply/**")
+                        .hasAnyRole("STUDENT", "ADMIN")
+                        // 请假审批：教师和管理员
+                        .requestMatchers("/leave/approve/**")
+                        .hasAnyRole("TEACHER", "ADMIN")
+                        // 请假记录查看：所有角色
+                        .requestMatchers("/leave/list/**")
+                        .hasAnyRole("STUDENT", "TEACHER", "ADMIN")
+                        // 课程管理：教师和管理员
+                        .requestMatchers("/course/**")
+                        .hasAnyRole("TEACHER", "ADMIN")
+                        // 管理员专属页面
+                        .requestMatchers("/admin/**")
+                        .hasRole("ADMIN")
                         .anyRequest()
                         .authenticated()
                 )

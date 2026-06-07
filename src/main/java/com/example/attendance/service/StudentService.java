@@ -1,6 +1,9 @@
 package com.example.attendance.service;
 
 import com.example.attendance.entity.Student;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.util.List;
 
 /**
@@ -28,7 +31,7 @@ public interface StudentService {
      * @param pageable 分页参数
      * @return 分页结果
      */
-    org.springframework.data.domain.Page<Student> findPage(String keyword, org.springframework.data.domain.Pageable pageable);
+    Page<Student> findPage(String keyword, Pageable pageable);
 
     /**
      * 按主键查询学生。
@@ -59,4 +62,11 @@ public interface StudentService {
      * @return 学生实体
      */
     Student getStudentByStudentNumber(String studentNumber);
+
+    /**
+     * 查询学生总数。
+     *
+     * @return 学生总数
+     */
+    long countStudents();
 }

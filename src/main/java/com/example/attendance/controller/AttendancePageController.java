@@ -1,10 +1,15 @@
 package com.example.attendance.controller;
 
+import com.example.attendance.aspect.LogOperation;
 import com.example.attendance.dto.CourseOption;
 import com.example.attendance.dto.RegisterForm;
+import com.example.attendance.dto.StudentDashboardStats;
+import com.example.attendance.dto.TeacherDashboardStats;
 import com.example.attendance.entity.Attendance;
+import com.example.attendance.entity.Course;
 import com.example.attendance.entity.Student;
 import com.example.attendance.service.AttendanceService;
+import com.example.attendance.service.CourseService;
 import com.example.attendance.service.StudentService;
 import com.example.attendance.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +22,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.security.core.Authentication;
@@ -31,8 +35,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 import java.io.InputStream;
+import java.util.List;
+
 import com.example.attendance.service.ExcelHelper;
 
 /**
@@ -46,6 +51,9 @@ public class AttendancePageController {
 
     @Autowired
     private StudentService studentService;
+
+    @Autowired
+    private CourseService courseService;
 
     @Autowired
     private AttendanceService attendanceService;
@@ -92,15 +100,38 @@ public class AttendancePageController {
     }
 
     /**
-     * 系统首页/仪表盘。
+     * 系统首页/仪表盘：根据角色自动跳转。
      */
     @GetMapping("/dashboard")
-    public String dashboard(Model model, Principal principal, Authentication authentication) {
-        String name = principal == null ? "" : principal.getName();
-        String message = name.isBlank() ? "欢迎进入系统" : "欢迎，" + name;
-        model.addAttribute("welcomeMsg", message);
-        model.addAttribute("roleLabel", isTeacher(authentication) ? "教师" : "学生");
-        return "dashboard";
+    public String dashboard(Authentication authentication) {
+        if (isAdmin(authentication)) {
+            return "redirect:/admin/dashboard";
+        }
+        if (isTeacher(authentication)) {
+            return "redirect:/teacher/dashboard";
+        }
+        return "redirect:/student/dashboard";
+    }
+
+    /**
+     * 管理员 Dashboard：可查看全局统计，也能访问所有功能。
+     */
+    @GetMapping("/admin/dashboard")
+    public String adminDashboard(Model model, Principal principal, Authentication authentication) {
+        String name = principal == null ? "管理员" : principal.getName();
+        model.addAttribute("welcomeMsg", "管理员控制台 — " + name);
+
+        // 教师端统计数据
+        TeacherDashboardStats stats = attendanceService.getTeacherStats();
+        stats = new TeacherDashboardStats(
+                studentService.countStudents(),
+                stats.todayCheckIns(), stats.todayDistinctStudents(),
+                stats.monthTotal(), stats.monthNormal(), stats.monthLate(),
+                stats.monthRate(), stats.courseStats()
+        );
+        model.addAttribute("stats", stats);
+        model.addAttribute("isAdmin", true);
+        return "admin-dashboard";
     }
 
     /**
@@ -108,8 +139,18 @@ public class AttendancePageController {
      */
     @GetMapping("/teacher/dashboard")
     public String teacherDashboard(Model model, Principal principal) {
-        String name = principal == null ? "" : principal.getName();
-        model.addAttribute("welcomeMsg", name.isBlank() ? "教师端" : "教师端，" + name);
+        String name = principal == null ? "教师" : principal.getName();
+        model.addAttribute("welcomeMsg", name);
+
+        TeacherDashboardStats stats = attendanceService.getTeacherStats();
+        stats = new TeacherDashboardStats(
+                studentService.countStudents(),
+                stats.todayCheckIns(), stats.todayDistinctStudents(),
+                stats.monthTotal(), stats.monthNormal(), stats.monthLate(),
+                stats.monthRate(), stats.courseStats()
+        );
+        model.addAttribute("stats", stats);
+        model.addAttribute("isAdmin", false);
         return "teacher-dashboard";
     }
 
@@ -117,9 +158,24 @@ public class AttendancePageController {
      * 学生端首页。
      */
     @GetMapping("/student/dashboard")
-    public String studentDashboard(Model model, Principal principal) {
+    public String studentDashboard(Model model, Principal principal, Authentication authentication) {
         String name = principal == null ? "" : principal.getName();
-        model.addAttribute("welcomeMsg", name.isBlank() ? "学生端" : "学生端，" + name);
+        model.addAttribute("welcomeMsg", name);
+
+        // 获取当前学生
+        Student student = studentService.getStudentByStudentNumber(name);
+        if (student != null) {
+            StudentDashboardStats stats = attendanceService.getStudentStats(student.getId());
+            // 今日已打卡课程数
+            LocalDateTime todayStart = LocalDate.now().atStartOfDay();
+            LocalDateTime todayEnd = LocalDateTime.now();
+            long todayChecked = attendanceService.findAttendanceList(
+                    student.getStudentNumber(), null, null, todayStart, todayEnd).size();
+            stats = new StudentDashboardStats(
+                    stats.monthTotal(), stats.monthNormal(), stats.monthLate(),
+                    stats.monthRate(), stats.todayCourses(), (int) todayChecked);
+            model.addAttribute("stats", stats);
+        }
         return "student-dashboard";
     }
 
@@ -141,6 +197,7 @@ public class AttendancePageController {
     /**
      * 提交打卡：检查时间窗口并写入考勤记录。
      */
+    @LogOperation(operation = "CHECK_IN", target = "Attendance")
     @PostMapping("/attendance/checkIn")
     public String checkIn(
             @RequestParam Integer courseId,
@@ -150,19 +207,19 @@ public class AttendancePageController {
             RedirectAttributes redirectAttributes
     ) {
         if (isTeacher(authentication)) {
-            redirectAttributes.addAttribute("errorMsg", "教师账号无需打卡。");
+            redirectAttributes.addFlashAttribute("errorMsg", "教师账号无需打卡。");
             return "redirect:/attendance/checkIn";
         }
         String studentNumber = principal == null ? "" : principal.getName();
         Student student = studentService.getStudentByStudentNumber(studentNumber);
         if (student == null) {
-            redirectAttributes.addAttribute("errorMsg", "未找到学生信息，请先维护学生档案。");
+            redirectAttributes.addFlashAttribute("errorMsg", "未找到学生信息，请先维护学生档案。");
             return "redirect:/attendance/checkIn";
         }
 
         CourseOption course = findCourse(courseId);
         if (course == null) {
-            redirectAttributes.addAttribute("errorMsg", "课程不存在，请重新选择。 ");
+            redirectAttributes.addFlashAttribute("errorMsg", "课程不存在，请重新选择。");
             return "redirect:/attendance/checkIn";
         }
 
@@ -173,7 +230,7 @@ public class AttendancePageController {
 
         // 时间窗口限制：课程开始前 15 分钟到开始后 30 分钟内允许打卡。
         if (now.isBefore(windowStart) || now.isAfter(windowEnd)) {
-            redirectAttributes.addAttribute("errorMsg", "当前不在打卡时间窗口内。");
+            redirectAttributes.addFlashAttribute("errorMsg", "当前不在打卡时间窗口内。");
             return "redirect:/attendance/checkIn";
         }
 
@@ -187,7 +244,7 @@ public class AttendancePageController {
         attendance.setCreateTime(LocalDateTime.now());
         attendanceService.saveAttendance(attendance);
 
-        redirectAttributes.addAttribute("successMsg", "打卡成功，状态：" + attendance.getStatus());
+        redirectAttributes.addFlashAttribute("successMsg", "打卡成功，状态：" + attendance.getStatus());
         return "redirect:/attendance/list";
     }
 
@@ -235,7 +292,7 @@ public class AttendancePageController {
         LocalDateTime endTime = end == null ? null : end.plusDays(1).atStartOfDay().minusNanos(1);
 
         String filterStudentNumber = null;
-        if (!isTeacher(authentication)) {
+        if (!isTeacherOrAdmin(authentication)) {
             String studentNumber = principal == null ? "" : principal.getName();
             Student student = studentService.getStudentByStudentNumber(studentNumber);
             filterStudentNumber = student == null ? null : student.getStudentNumber();
@@ -252,7 +309,7 @@ public class AttendancePageController {
         );
 
         model.addAttribute("records", attendancePage.getContent());
-        model.addAttribute("isTeacher", isTeacher(authentication));
+        model.addAttribute("isTeacher", isTeacherOrAdmin(authentication));
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", attendancePage.getTotalPages());
         model.addAttribute("startDate", start == null ? "" : start.format(formatter));
@@ -283,7 +340,7 @@ public class AttendancePageController {
         LocalDateTime endTime = end == null ? null : end.plusDays(1).atStartOfDay().minusNanos(1);
 
         String filterStudentNumber = null;
-        if (!isTeacher(authentication)) {
+        if (!isTeacherOrAdmin(authentication)) {
             String studentNumber = principal == null ? "" : principal.getName();
             Student student = studentService.getStudentByStudentNumber(studentNumber);
             filterStudentNumber = student == null ? null : student.getStudentNumber();
@@ -302,13 +359,17 @@ public class AttendancePageController {
         response.setHeader("Content-Disposition", "attachment; filename=attendance.csv");
 
         StringBuilder builder = new StringBuilder();
-        builder.append("日期,课程,打卡时间,状态,备注\n");
+        builder.append("学号,姓名,日期,课程,打卡时间,状态,备注\n");
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
         for (Attendance record : records) {
+            String studentNumber = record.getStudent() == null ? "" : record.getStudent().getStudentNumber();
+            String studentName = record.getStudent() == null ? "" : record.getStudent().getName();
             String date = record.getCheckInTime() == null ? "" : record.getCheckInTime().format(dateFormatter);
             String time = record.getCheckInTime() == null ? "" : record.getCheckInTime().format(timeFormatter);
-            builder.append(date).append(',')
+            builder.append(safeCsv(studentNumber)).append(',')
+                    .append(safeCsv(studentName)).append(',')
+                    .append(date).append(',')
                     .append(safeCsv(record.getCourseName())).append(',')
                     .append(time).append(',')
                     .append(safeCsv(record.getStatus())).append(',')
@@ -317,6 +378,82 @@ public class AttendancePageController {
         }
         response.getWriter().write(builder.toString());
         response.getWriter().flush();
+    }
+
+    /**
+     * 导出考勤记录（Excel .xlsx）。
+     */
+    @GetMapping("/attendance/exportExcel")
+    public void exportAttendanceExcel(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Integer courseId,
+            Principal principal,
+            Authentication authentication,
+            HttpServletResponse response
+    ) throws IOException {
+        DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE;
+        LocalDate start = parseDate(startDate, formatter);
+        LocalDate end = parseDate(endDate, formatter);
+        LocalDateTime startTime = start == null ? null : start.atStartOfDay();
+        LocalDateTime endTime = end == null ? null : end.plusDays(1).atStartOfDay().minusNanos(1);
+
+        String filterStudentNumber = null;
+        if (!isTeacherOrAdmin(authentication)) {
+            String studentNumber = principal == null ? "" : principal.getName();
+            Student student = studentService.getStudentByStudentNumber(studentNumber);
+            filterStudentNumber = student == null ? null : student.getStudentNumber();
+        }
+
+        List<Attendance> records = attendanceService.findAttendanceList(
+                filterStudentNumber, status, courseId, startTime, endTime);
+
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=attendance.xlsx");
+
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+
+        try (org.apache.poi.xssf.usermodel.XSSFWorkbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook()) {
+            org.apache.poi.ss.usermodel.Sheet sheet = workbook.createSheet("考勤记录");
+
+            // 表头样式
+            org.apache.poi.ss.usermodel.CellStyle headerStyle = workbook.createCellStyle();
+            org.apache.poi.ss.usermodel.Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+
+            // 表头行
+            String[] headers = {"学号", "姓名", "日期", "课程", "打卡时间", "状态", "备注"};
+            org.apache.poi.ss.usermodel.Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                org.apache.poi.ss.usermodel.Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            // 数据行
+            int rowIdx = 1;
+            for (Attendance record : records) {
+                org.apache.poi.ss.usermodel.Row row = sheet.createRow(rowIdx++);
+                row.createCell(0).setCellValue(record.getStudent() == null ? "" : record.getStudent().getStudentNumber());
+                row.createCell(1).setCellValue(record.getStudent() == null ? "" : record.getStudent().getName());
+                row.createCell(2).setCellValue(record.getCheckInTime() == null ? "" : record.getCheckInTime().format(dateFormatter));
+                row.createCell(3).setCellValue(record.getCourseName() == null ? "" : record.getCourseName());
+                row.createCell(4).setCellValue(record.getCheckInTime() == null ? "" : record.getCheckInTime().format(timeFormatter));
+                row.createCell(5).setCellValue(record.getStatus() == null ? "" : record.getStatus());
+                row.createCell(6).setCellValue(record.getRemark() == null ? "" : record.getRemark());
+            }
+
+            // 自动调整列宽
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            workbook.write(response.getOutputStream());
+            response.getOutputStream().flush();
+        }
     }
 
     private LocalDate parseDate(String value, DateTimeFormatter formatter) {
@@ -338,6 +475,18 @@ public class AttendancePageController {
     }
 
     private List<CourseOption> buildCourses() {
+        // 优先从数据库加载课程，若无则使用默认课程
+        try {
+            List<Course> courses = courseService.getAllCourses();
+            if (courses != null && !courses.isEmpty()) {
+                return courses.stream()
+                        .map(c -> new CourseOption(c.getId().intValue(), c.getName(),
+                                c.getStartTime() != null ? c.getStartTime() : LocalTime.of(8, 0)))
+                        .toList();
+            }
+        } catch (Exception ignored) {
+            // CourseService 不可用时回退到硬编码课程
+        }
         return List.of(
                 new CourseOption(1, "Java程序设计", LocalTime.of(8, 0)),
                 new CourseOption(2, "数据库原理", LocalTime.of(10, 0)),
@@ -363,23 +512,44 @@ public class AttendancePageController {
                 .anyMatch(authority -> "ROLE_TEACHER".equals(authority.getAuthority()));
     }
 
+    private boolean isAdmin(Authentication authentication) {
+        if (authentication == null) {
+            return false;
+        }
+        return authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+    }
+
+    private boolean isTeacherOrAdmin(Authentication authentication) {
+        return isTeacher(authentication) || isAdmin(authentication);
+    }
+
     /**
      * 批量导入考勤页面。
      */
     @GetMapping("/attendance/import")
-    public String importPage() {
+    public String importPage(Model model) {
+        model.addAttribute("courses", buildCourses());
         return "attendance-import";
     }
 
     /**
      * 批量导入考勤数据。
      */
+    @LogOperation(operation = "IMPORT", target = "Attendance")
     @PostMapping("/attendance/import")
     public String importAttendance(@RequestParam("file") MultipartFile file,
+                                   @RequestParam("courseId") Integer courseId,
                                    Principal principal,
                                    RedirectAttributes redirectAttributes) {
         if (file.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "请选择要上传的文件");
+            return "redirect:/attendance/import";
+        }
+        // 根据 courseId 查找课程，不再硬编码
+        CourseOption course = findCourse(courseId);
+        if (course == null) {
+            redirectAttributes.addFlashAttribute("error", "课程不存在，请重新选择");
             return "redirect:/attendance/import";
         }
         try {
@@ -389,11 +559,8 @@ public class AttendancePageController {
                 redirectAttributes.addFlashAttribute("error", "未找到学生信息，请先维护学生档案");
                 return "redirect:/attendance/import";
             }
-            // 这里假设课程ID和名称由前端或模板指定，实际可根据需求调整
-            Integer courseId = 1;
-            String courseName = "Java程序设计";
             InputStream is = file.getInputStream();
-            var records = ExcelHelper.parseExcel(is, student, courseId, courseName);
+            var records = ExcelHelper.parseExcel(is, student, course.id(), course.name());
             for (var att : records) {
                 attendanceService.saveAttendance(att);
             }

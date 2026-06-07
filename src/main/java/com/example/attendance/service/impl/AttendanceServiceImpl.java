@@ -3,6 +3,8 @@ package com.example.attendance.service.impl;
 import com.example.attendance.dao.AttendanceRepository;
 import com.example.attendance.dto.AttendancePageResponse;
 import com.example.attendance.dto.AttendanceView;
+import com.example.attendance.dto.StudentDashboardStats;
+import com.example.attendance.dto.TeacherDashboardStats;
 import com.example.attendance.entity.Attendance;
 import com.example.attendance.entity.Student;
 import com.example.attendance.service.AttendanceService;
@@ -95,6 +97,49 @@ public class AttendanceServiceImpl implements AttendanceService {
     ) {
         return attendanceRepository.findAll(buildSpecification(studentNumber, status, courseId, startTime, endTime),
                 Sort.by(Sort.Direction.DESC, "checkInTime"));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StudentDashboardStats getStudentStats(Long studentId) {
+        LocalDateTime monthStart = LocalDateTime.now()
+                .withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime monthEnd = LocalDateTime.now();
+
+        long total = attendanceRepository.countByStudent_IdAndCheckInTimeBetween(studentId, monthStart, monthEnd);
+        long normal = attendanceRepository.countByStudent_IdAndStatusAndCheckInTimeBetween(studentId, "NORMAL", monthStart, monthEnd);
+        long late = attendanceRepository.countByStudent_IdAndStatusAndCheckInTimeBetween(studentId, "LATE", monthStart, monthEnd);
+        double rate = total > 0 ? Math.round(normal * 10000.0 / total) / 100.0 : 100.0;
+
+        return new StudentDashboardStats(total, normal, late, rate, 3, 0); // 课程数暂时固定3，已打卡数由Controller计算
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TeacherDashboardStats getTeacherStats() {
+        LocalDateTime todayStart = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime todayEnd = LocalDateTime.now();
+        LocalDateTime monthStart = LocalDateTime.now()
+                .withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime monthEnd = LocalDateTime.now();
+
+        long todayCheckIns = attendanceRepository.countByCheckInTimeBetween(todayStart, todayEnd);
+        long todayDistinct = attendanceRepository.countDistinctStudentByCheckInTimeBetween(todayStart, todayEnd);
+        long monthTotal = attendanceRepository.countByCheckInTimeBetween(monthStart, monthEnd);
+        long monthNormal = attendanceRepository.countByStatusAndCheckInTimeBetween("NORMAL", monthStart, monthEnd);
+        long monthLate = attendanceRepository.countByStatusAndCheckInTimeBetween("LATE", monthStart, monthEnd);
+        double monthRate = monthTotal > 0 ? Math.round(monthNormal * 10000.0 / monthTotal) / 100.0 : 100.0;
+
+        List<TeacherDashboardStats.CourseStat> courseStats =
+                attendanceRepository.countByCourseBetween(monthStart, monthEnd).stream()
+                        .map(row -> new TeacherDashboardStats.CourseStat(
+                                (String) row[0],
+                                (Long) row[1]
+                        ))
+                        .toList();
+
+        return new TeacherDashboardStats(0, todayCheckIns, todayDistinct,
+                monthTotal, monthNormal, monthLate, monthRate, courseStats);
     }
 
     /**

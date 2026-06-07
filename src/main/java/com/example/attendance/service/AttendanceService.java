@@ -1,13 +1,25 @@
 package com.example.attendance.service;
 
 import com.example.attendance.dto.AttendancePageResponse;
+import com.example.attendance.dto.StudentDashboardStats;
+import com.example.attendance.dto.TeacherDashboardStats;
+import com.example.attendance.entity.Attendance;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 考勤服务接口。
  */
 public interface AttendanceService {
+
+    /** 获取学生端 Dashboard 统计数据 */
+    StudentDashboardStats getStudentStats(Long studentId);
+
+    /** 获取教师端 Dashboard 统计数据 */
+    TeacherDashboardStats getTeacherStats();
     /**
      * 分页查询考勤记录。
      *
@@ -38,24 +50,24 @@ public interface AttendanceService {
      * @param attendance 考勤实体
      * @return 保存后的实体
      */
-    com.example.attendance.entity.Attendance saveAttendance(com.example.attendance.entity.Attendance attendance);
+    Attendance saveAttendance(Attendance attendance);
 
     /**
      * 分页查询考勤记录（页面使用）。
      */
-    org.springframework.data.domain.Page<com.example.attendance.entity.Attendance> findAttendancePage(
+    Page<Attendance> findAttendancePage(
             String studentNumber,
             String status,
             Integer courseId,
             LocalDateTime startTime,
             LocalDateTime endTime,
-            org.springframework.data.domain.Pageable pageable
+            Pageable pageable
     );
 
     /**
      * 查询考勤记录（导出使用）。
      */
-    java.util.List<com.example.attendance.entity.Attendance> findAttendanceList(
+    List<Attendance> findAttendanceList(
             String studentNumber,
             String status,
             Integer courseId,

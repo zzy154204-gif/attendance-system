@@ -1,5 +1,6 @@
 package com.example.attendance.controller;
 
+import com.example.attendance.aspect.LogOperation;
 import com.example.attendance.entity.Student;
 import com.example.attendance.service.StudentService;
 import jakarta.validation.Valid;
@@ -102,9 +103,10 @@ public class StudentPageController {
     }
 
     /**
-     * 删除学生。
+     * 删除学生。注意：必须使用 POST，GET 请求不应执行写操作。
      */
-    @GetMapping("/delete/{id}")
+    @LogOperation(operation = "DELETE", target = "Student")
+    @PostMapping("/delete/{id}")
     public String delete(@PathVariable Long id) {
         studentService.deleteStudent(id);
         return "redirect:/student/list";
