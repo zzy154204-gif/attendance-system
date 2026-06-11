@@ -9,24 +9,20 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Repository
 public interface LeaveApplicationRepository extends JpaRepository<LeaveApplication, Long> {
 
-    /** 按学生 ID 查询请假记录（分页） */
     Page<LeaveApplication> findByStudent_IdOrderByApplyTimeDesc(Long studentId, Pageable pageable);
 
-    /** 按状态查询（分页） */
     Page<LeaveApplication> findByStatusOrderByApplyTimeDesc(String status, Pageable pageable);
 
-    /** 查询全部（分页，按申请时间倒序） */
     Page<LeaveApplication> findAllByOrderByApplyTimeDesc(Pageable pageable);
 
     /** 按课程和学生统计请假次数 */
-    long countByStudent_IdAndCourseIdAndStatus(Long studentId, Integer courseId, String status);
+    long countByStudent_IdAndCourse_IdAndStatus(Long studentId, Long courseId, String status);
 
-    /** 统计学生在时间段内的请假次数 */
+    /** 统计学生在时间段内的已批准请假次数（用于冲突检测） */
     @Query("SELECT COUNT(l) FROM LeaveApplication l WHERE l.student.id = :studentId " +
            "AND l.status = 'APPROVED' AND l.startTime <= :end AND l.endTime >= :start")
     long countApprovedOverlapping(@Param("studentId") Long studentId,

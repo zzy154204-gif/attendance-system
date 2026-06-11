@@ -17,10 +17,15 @@ public class Course {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long id;
 
-    /** 课程名称 */
-    @Column(nullable = false, length = 100)
+    /** 课程编码/业务编号（映射到数据库 course_id 列） */
+    @Column(name = "course_id", nullable = false, length = 50)
+    private String courseId;
+
+    /** 课程名称（映射到数据库 course_name 列） */
+    @Column(name = "course_name", nullable = false, length = 100)
     private String name;
 
     /** 课程代码 */
@@ -46,6 +51,10 @@ public class Course {
     /** 星期几（存储字符串：MONDAY, TUESDAY 等） */
     @Column(name = "week_day", length = 10)
     private String weekDay;
+
+    /** 班级名称（如：软件工程1班） */
+    @Column(name = "class_name", length = 50)
+    private String className = "";
 
     /** 学期 */
     private Integer semester;

@@ -4,10 +4,12 @@
 -- ============================================
 
 -- 1. 插入课程数据（配合 Course 实体，支持数据库管理课程）
-INSERT INTO course (name, code, teacher_name, classroom, start_time, end_time, week_day, semester) VALUES
-('Java程序设计', 'CS101', '张老师', 'A101', '08:00', '10:00', 'MONDAY', 1),
-('数据库原理',   'CS201', '李老师', 'B202', '10:00', '12:00', 'TUESDAY', 1),
-('Java EE开发',  'CS301', '王老师', 'C303', '14:00', '16:00', 'WEDNESDAY', 1)
+-- 使用 course_name（匹配 Course 实体 @Column(name="course_name") 映射）
+-- 同时插入 course_id（匹配实体 courseId 字段），与 code 保持一致
+INSERT INTO course (course_name, course_id, code, teacher_name, classroom, start_time, end_time, week_day, semester) VALUES
+('Java程序设计', 'CS101', 'CS101', '张老师', 'A101', '08:00', '10:00', 'MONDAY', 1),
+('数据库原理',   'CS201', 'CS201', '李老师', 'B202', '10:00', '12:00', 'TUESDAY', 1),
+('Java EE开发',  'CS301', 'CS301', '王老师', 'C303', '14:00', '16:00', 'WEDNESDAY', 1)
 ON CONFLICT (code) DO NOTHING;
 
 -- 2. 插入 20 名学生
@@ -70,15 +72,15 @@ BEGIN
                     WHEN check_time::TIME > '08:00'::TIME THEN 'LATE'
                     ELSE 'NORMAL'
                 END;
-                INSERT INTO attendance (check_in_time, status, course_id, course_name, student_id, remark, create_time)
-                VALUES (check_time, att_status, 1, 'Java程序设计', stu.id,
+                INSERT INTO attendance (check_in_time, status, course_id, student_id, remark, create_time)
+                VALUES (check_time, att_status, 1, stu.id,
                         CASE WHEN att_status = 'LATE' THEN '路上堵车' ELSE NULL END,
                         check_time)
                 ON CONFLICT DO NOTHING;
             ELSE
                 -- 偶尔缺勤
-                INSERT INTO attendance (check_in_time, status, course_id, course_name, student_id, remark, create_time)
-                VALUES (check_date + '08:05'::TIME, 'ABSENT', 1, 'Java程序设计', stu.id, '身体不适请假', check_date + '08:05'::TIME)
+                INSERT INTO attendance (check_in_time, status, course_id, student_id, remark, create_time)
+                VALUES (check_date + '08:05'::TIME, 'ABSENT', 1, stu.id, '身体不适请假', check_date + '08:05'::TIME)
                 ON CONFLICT DO NOTHING;
             END IF;
 
@@ -92,8 +94,8 @@ BEGIN
                     WHEN check_time::TIME > '10:00'::TIME THEN 'LATE'
                     ELSE 'NORMAL'
                 END;
-                INSERT INTO attendance (check_in_time, status, course_id, course_name, student_id, remark, create_time)
-                VALUES (check_time, att_status, 2, '数据库原理', stu.id,
+                INSERT INTO attendance (check_in_time, status, course_id, student_id, remark, create_time)
+                VALUES (check_time, att_status, 2, stu.id,
                         NULL, check_time)
                 ON CONFLICT DO NOTHING;
             END IF;
@@ -108,8 +110,8 @@ BEGIN
                     WHEN check_time::TIME > '14:00'::TIME THEN 'LATE'
                     ELSE 'NORMAL'
                 END;
-                INSERT INTO attendance (check_in_time, status, course_id, course_name, student_id, remark, create_time)
-                VALUES (check_time, att_status, 3, 'Java EE开发', stu.id,
+                INSERT INTO attendance (check_in_time, status, course_id, student_id, remark, create_time)
+                VALUES (check_time, att_status, 3, stu.id,
                         NULL, check_time)
                 ON CONFLICT DO NOTHING;
             END IF;

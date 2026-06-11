@@ -1,21 +1,26 @@
 package com.example.attendance.service.impl;
 
+import com.example.attendance.dao.StudentDao;
 import com.example.attendance.dao.UserDao;
 import com.example.attendance.dto.LoginRequest;
 import com.example.attendance.dto.RegisterRequest;
+import com.example.attendance.entity.Student;
 import com.example.attendance.entity.User;
 import com.example.attendance.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.List; // 记得这里也要导入 java.util.List
+import java.util.List;
 
 @Service
 public class UserServiceImpl implements UserService {
 
     @Autowired
     private UserDao userDao;
+
+    @Autowired
+    private StudentDao studentDao;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -69,7 +74,20 @@ public class UserServiceImpl implements UserService {
         user.setRealName(normalizedRealName);
         user.setRole(normalizeRole(request.role()));
 
-        return userDao.save(user);
+        User savedUser = userDao.save(user);
+
+        // 学生角色注册时，自动创建对应的 Student 记录
+        if ("STUDENT".equals(savedUser.getRole())) {
+            Student studentExisting = studentDao.findByStudentNumber(savedUser.getUsername());
+            if (studentExisting == null) {
+                Student student = new Student();
+                student.setStudentNumber(savedUser.getUsername());
+                student.setName(normalizedRealName);
+                studentDao.save(student);
+            }
+        }
+
+        return savedUser;
     }
 
     @Override

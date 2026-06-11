@@ -1,6 +1,7 @@
 package com.example.attendance.service;
 
 import com.example.attendance.entity.Attendance;
+import com.example.attendance.entity.Course;
 import com.example.attendance.entity.Student;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -14,7 +15,7 @@ import java.util.Iterator;
 import java.util.List;
 
 public class ExcelHelper {
-    public static List<Attendance> parseExcel(InputStream is, Student student, Integer courseId, String courseName) throws Exception {
+    public static List<Attendance> parseExcel(InputStream is, Student student, Course course) throws Exception {
         List<Attendance> attendances = new ArrayList<>();
         Workbook workbook = new XSSFWorkbook(is);
         Sheet sheet = workbook.getSheetAt(0);
@@ -22,7 +23,7 @@ public class ExcelHelper {
         int rowNumber = 0;
         while (rows.hasNext()) {
             Row currentRow = rows.next();
-            if (rowNumber++ == 0) continue; // 跳过表头
+            if (rowNumber++ == 0) continue;
             Cell dateCell = currentRow.getCell(0);
             Cell timeCell = currentRow.getCell(1);
             Cell statusCell = currentRow.getCell(2);
@@ -34,8 +35,7 @@ public class ExcelHelper {
             String remark = remarkCell != null ? remarkCell.getStringCellValue() : null;
             Attendance att = new Attendance();
             att.setStudent(student);
-            att.setCourseId(courseId);
-            att.setCourseName(courseName);
+            att.setCourse(course);
             att.setCheckInTime(LocalDateTime.of(date, time));
             att.setStatus(status);
             att.setRemark(remark);
@@ -46,4 +46,3 @@ public class ExcelHelper {
         return attendances;
     }
 }
-

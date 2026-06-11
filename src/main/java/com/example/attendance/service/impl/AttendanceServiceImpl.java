@@ -78,7 +78,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     public Page<Attendance> findAttendancePage(
             String studentNumber,
             String status,
-            Integer courseId,
+            Long courseId,
             LocalDateTime startTime,
             LocalDateTime endTime,
             Pageable pageable
@@ -91,7 +91,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     public List<Attendance> findAttendanceList(
             String studentNumber,
             String status,
-            Integer courseId,
+            Long courseId,
             LocalDateTime startTime,
             LocalDateTime endTime
     ) {
@@ -164,7 +164,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     private Specification<Attendance> buildSpecification(
             String studentNumber,
             String status,
-            Integer courseId,
+            Long courseId,
             LocalDateTime startTime,
             LocalDateTime endTime
     ) {
@@ -178,7 +178,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                 predicates.add(cb.equal(root.get("status"), status));
             }
             if (courseId != null) {
-                predicates.add(cb.equal(root.get("courseId"), courseId));
+                predicates.add(cb.equal(root.get("course").get("id"), courseId));
             }
             if (startTime != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("checkInTime"), startTime));

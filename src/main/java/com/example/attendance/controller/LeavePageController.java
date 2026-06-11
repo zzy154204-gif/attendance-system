@@ -57,31 +57,32 @@ public class LeavePageController {
     @LogOperation(operation = "APPLY_LEAVE", target = "Leave")
     @PostMapping("/leave/apply")
     public String apply(
-            @RequestParam Integer courseId,
+            @RequestParam Long courseId,
             @RequestParam String startTime,
             @RequestParam String endTime,
             @RequestParam String reason,
             Principal principal,
             RedirectAttributes redirectAttributes
     ) {
-        String username = principal == null ? "" : principal.getName();
-        Student student = studentService.getStudentByStudentNumber(username);
-        if (student == null) {
-            redirectAttributes.addFlashAttribute("errorMsg", "未找到学生信息，请先维护学生档案");
-            return "redirect:/leave/apply";
-        }
-
-        CourseOption course = findCourse(courseId);
-        if (course == null) {
-            redirectAttributes.addFlashAttribute("errorMsg", "课程不存在");
-            return "redirect:/leave/apply";
-        }
-
         try {
+            String username = principal == null ? "" : principal.getName();
+            Student student = studentService.getStudentByStudentNumber(username);
+            if (student == null) {
+                redirectAttributes.addFlashAttribute("errorMsg", "未找到学生信息，请先维护学生档案");
+                return "redirect:/leave/apply";
+            }
+
+            Course course;
+            try {
+                course = courseService.getById(courseId);
+            } catch (Exception e) {
+                redirectAttributes.addFlashAttribute("errorMsg", "课程不存在");
+                return "redirect:/leave/apply";
+            }
+
             LeaveApplication application = new LeaveApplication();
             application.setStudent(student);
-            application.setCourseId(course.id());
-            application.setCourseName(course.name());
+            application.setCourse(course);
             application.setStartTime(java.time.LocalDateTime.parse(startTime));
             application.setEndTime(java.time.LocalDateTime.parse(endTime));
             application.setReason(reason);
@@ -89,7 +90,7 @@ public class LeavePageController {
             leaveApplicationService.apply(application);
             redirectAttributes.addFlashAttribute("successMsg", "请假申请已提交，请等待审批");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMsg", e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMsg", "请假申请失败：" + e.getMessage());
         }
         return "redirect:/leave/list";
     }
@@ -157,26 +158,10 @@ public class LeavePageController {
     }
 
     private List<CourseOption> buildCourses() {
-        // 优先从数据库加载课程，若无则使用默认课程
-        try {
-            List<Course> courses = courseService.getAllCourses();
-            if (courses != null && !courses.isEmpty()) {
-                return courses.stream()
-                        .map(c -> new CourseOption(c.getId().intValue(), c.getName(),
-                                c.getStartTime() != null ? c.getStartTime() : LocalTime.of(8, 0)))
-                        .toList();
-            }
-        } catch (Exception ignored) {
-            // CourseService 不可用时回退到硬编码课程
-        }
-        return List.of(
-                new CourseOption(1, "Java程序设计", LocalTime.of(8, 0)),
-                new CourseOption(2, "数据库原理", LocalTime.of(10, 0)),
-                new CourseOption(3, "Java EE开发", LocalTime.of(14, 0))
-        );
+        return courseService.buildCourseOptions();
     }
 
-    private CourseOption findCourse(Integer courseId) {
+    private CourseOption findCourse(Long courseId) {
         if (courseId == null) return null;
         return buildCourses().stream()
                 .filter(c -> c.id().equals(courseId))

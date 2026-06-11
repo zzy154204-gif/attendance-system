@@ -36,56 +36,47 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 // 权限控制配置：放行登录/注册页与静态资源，其余需认证。
                 .authorizeHttpRequests(auth -> auth
+                        // ===== 公开路径 =====
                         .requestMatchers(
-                                "/login",
-                                "/login/**",
-                                "/register",
-                                "/register/**",
-                                "/error",
-                                "/error/**",
+                                "/login", "/login/**",
+                                "/register", "/register/**",
+                                "/error", "/error/**",
                                 "/favicon.ico",
                                 "/auth/**",
-                                "/css/**",
-                                "/js/**",
-                                "/images/**",
+                                "/css/**", "/js/**", "/images/**",
                                 "/webjars/**"
-                        )
-                        .permitAll()
-                        // 学生端：允许打卡（ADMIN 也可模拟）
-                        .requestMatchers("/attendance/checkIn/**")
-                        .hasAnyRole("STUDENT", "ADMIN")
-                        // 教师端：允许导出
-                        .requestMatchers("/attendance/export/**")
-                        .hasAnyRole("TEACHER", "ADMIN")
-                        // 学生端主页
-                        .requestMatchers("/student/dashboard")
-                        .hasAnyRole("STUDENT", "ADMIN")
-                        // 教师端：允许学生管理
-                        .requestMatchers("/student/**")
-                        .hasAnyRole("TEACHER", "ADMIN")
-                        // 考勤记录：所有角色都能访问
-                        .requestMatchers("/attendance/list/**")
-                        .hasAnyRole("STUDENT", "TEACHER", "ADMIN")
-                        // 教师端/管理员主页
-                        .requestMatchers("/teacher/**")
-                        .hasAnyRole("TEACHER", "ADMIN")
-                        // 请假申请：学生和管理员可提交
-                        .requestMatchers("/leave/apply/**")
-                        .hasAnyRole("STUDENT", "ADMIN")
-                        // 请假审批：教师和管理员
-                        .requestMatchers("/leave/approve/**")
-                        .hasAnyRole("TEACHER", "ADMIN")
-                        // 请假记录查看：所有角色
-                        .requestMatchers("/leave/list/**")
-                        .hasAnyRole("STUDENT", "TEACHER", "ADMIN")
-                        // 课程管理：教师和管理员
-                        .requestMatchers("/course/**")
-                        .hasAnyRole("TEACHER", "ADMIN")
-                        // 管理员专属页面
-                        .requestMatchers("/admin/**")
-                        .hasRole("ADMIN")
-                        .anyRequest()
-                        .authenticated()
+                        ).permitAll()
+
+                        // ===== 管理员专属 =====
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/user/**").hasRole("ADMIN")
+
+                        // ===== 学生 + 管理员 =====
+                        .requestMatchers("/student/dashboard").hasAnyRole("STUDENT", "ADMIN")
+                        .requestMatchers("/attendance/checkIn/**").hasAnyRole("STUDENT", "ADMIN")
+                        .requestMatchers("/leave/apply/**").hasAnyRole("STUDENT", "ADMIN")
+
+                        // ===== 教师 + 管理员 =====
+                        .requestMatchers("/teacher/**").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers("/course/**").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers("/attendance/export/**").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers("/attendance/import/**").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers("/leave/approve/**").hasAnyRole("TEACHER", "ADMIN")
+
+                        // 学生管理页面（教师+管理员）— 必须在 /student/dashboard 之后
+                        .requestMatchers("/student/**").hasAnyRole("TEACHER", "ADMIN")
+                        // REST API：写操作限制（教师+管理员）
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/add", "/students").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/students/**").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/students/**").hasAnyRole("TEACHER", "ADMIN")
+
+                        // ===== 所有角色 =====
+                        .requestMatchers("/attendance/list/**").hasAnyRole("STUDENT", "TEACHER", "ADMIN")
+                        .requestMatchers("/leave/list/**").hasAnyRole("STUDENT", "TEACHER", "ADMIN")
+                        .requestMatchers("/dashboard").authenticated()
+
+                        // ===== 其余需登录 =====
+                        .anyRequest().authenticated()
                 )
                 // 表单登录配置：使用自定义页面，并在登录成功后跳转到 dashboard。
                 .formLogin(form -> form
@@ -111,6 +102,37 @@ public class SecurityConfig {
      */
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        return new LegacyAwarePasswordEncoder();
+    }
+
+    /**
+     * 兼容历史明文密码的数据迁移编码器：
+     * - 新写入仍使用 BCrypt
+     * - 旧数据若是明文，则允许直接登录
+     */
+    static class LegacyAwarePasswordEncoder implements PasswordEncoder {
+        private final BCryptPasswordEncoder delegate = new BCryptPasswordEncoder();
+
+        @Override
+        public String encode(CharSequence rawPassword) {
+            return delegate.encode(rawPassword);
+        }
+
+        @Override
+        public boolean matches(CharSequence rawPassword, String encodedPassword) {
+            if (encodedPassword == null || rawPassword == null) {
+                return false;
+            }
+
+            if (isBcryptHash(encodedPassword)) {
+                return delegate.matches(rawPassword, encodedPassword);
+            }
+
+            return encodedPassword.contentEquals(rawPassword);
+        }
+
+        private boolean isBcryptHash(String value) {
+            return value.startsWith("$2a$") || value.startsWith("$2b$") || value.startsWith("$2y$");
+        }
     }
 }

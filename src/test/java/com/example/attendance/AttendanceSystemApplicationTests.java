@@ -5,6 +5,7 @@ import com.example.attendance.entity.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -15,13 +16,16 @@ class AttendanceSystemApplicationTests {
     @Autowired
     private UserDao userDao; // 把你写的 UserDao 借过来用
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @Test
     void testInsert() {
         // 1. 创建一个用户对象（当前 User 使用 JPA 实体结构）
         String suffix = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         User user = new User();
         user.setUsername("zy_student_" + suffix);
-        user.setPassword("123456");
+        user.setPassword(passwordEncoder.encode("123456"));
         user.setRealName("张同学");
         user.setRole("STUDENT");
 

@@ -19,17 +19,14 @@ public class LeaveApplication {
     private Long id;
 
     /** 请假学生 */
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "student_id")
     private Student student;
 
-    /** 关联课程 ID（可选，可针对具体课程请假） */
-    @Column(name = "course_id")
-    private Integer courseId;
-
-    /** 课程名称冗余字段 */
-    @Column(name = "course_name", length = 100)
-    private String courseName;
+    /** 关联课程（外键） */
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "course_id")
+    private Course course;
 
     /** 请假开始时间 */
     @Column(name = "start_time", nullable = false)
@@ -62,4 +59,14 @@ public class LeaveApplication {
     /** 审批人用户名 */
     @Column(name = "approver", length = 50)
     private String approver;
+
+    /** 便捷方法：获取课程名称 */
+    public String getCourseName() {
+        return course != null ? course.getName() : null;
+    }
+
+    /** 便捷方法：获取课程 ID */
+    public Long getCourseId() {
+        return course != null ? course.getId() : null;
+    }
 }

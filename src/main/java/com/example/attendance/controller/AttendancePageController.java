@@ -200,52 +200,76 @@ public class AttendancePageController {
     @LogOperation(operation = "CHECK_IN", target = "Attendance")
     @PostMapping("/attendance/checkIn")
     public String checkIn(
-            @RequestParam Integer courseId,
+            @RequestParam Long courseId,
             @RequestParam(required = false) String remark,
             Principal principal,
             Authentication authentication,
             RedirectAttributes redirectAttributes
     ) {
-        if (isTeacher(authentication)) {
-            redirectAttributes.addFlashAttribute("errorMsg", "教师账号无需打卡。");
+        try {
+            if (isTeacher(authentication)) {
+                redirectAttributes.addFlashAttribute("errorMsg", "教师账号无需打卡。");
+                return "redirect:/attendance/checkIn";
+            }
+            String studentNumber = principal == null ? "" : principal.getName();
+            Student student = studentService.getStudentByStudentNumber(studentNumber);
+            if (student == null) {
+                // 兜底：用户已注册但没有 Student 记录的，自动创建
+                student = new Student();
+                student.setStudentNumber(studentNumber);
+                student.setName(studentNumber);
+                studentService.addStudent(student);
+            }
+
+            Course course;
+            try {
+                course = courseService.getById(courseId);
+            } catch (Exception e) {
+                redirectAttributes.addFlashAttribute("errorMsg", "课程不存在，请重新选择。");
+                return "redirect:/attendance/checkIn";
+            }
+
+            LocalDateTime dayStart = LocalDate.now().atStartOfDay();
+            LocalDateTime dayEnd = LocalDate.now().plusDays(1).atStartOfDay();
+            List<Attendance> todayAttendances = attendanceService.findAttendanceList(
+                    studentNumber, null, courseId, dayStart, dayEnd);
+            if (!todayAttendances.isEmpty()) {
+                redirectAttributes.addFlashAttribute("errorMsg", "今天这门课已经打过卡了，请勿重复提交。");
+                return "redirect:/attendance/checkIn";
+            }
+
+            LocalDateTime now = LocalDateTime.now();
+            LocalTime startTime = course.getStartTime() != null ? course.getStartTime() : LocalTime.of(8, 0);
+            LocalTime endTime = course.getEndTime() != null ? course.getEndTime() : startTime.plusHours(2);
+            LocalDateTime windowStart = LocalDate.now().atTime(startTime);
+            LocalDateTime windowEnd = LocalDate.now().atTime(endTime);
+
+            if (now.isBefore(windowStart) || now.isAfter(windowEnd)) {
+                String windowInfo = String.format("打卡窗口：%s ~ %s（课程 %s）",
+                        windowStart.toLocalTime(), windowEnd.toLocalTime(),
+                        course.getName());
+                redirectAttributes.addFlashAttribute("errorMsg", "当前不在课程时间范围内。" + windowInfo);
+                return "redirect:/attendance/checkIn";
+            }
+
+            Attendance attendance = new Attendance();
+            attendance.setStudent(student);
+            attendance.setCourse(course);
+            attendance.setCheckInTime(now);
+            attendance.setStatus(now.toLocalTime().isAfter(startTime) ? "LATE" : "NORMAL");
+            attendance.setRemark(remark);
+            attendance.setCreateTime(LocalDateTime.now());
+            attendanceService.saveAttendance(attendance);
+
+            redirectAttributes.addFlashAttribute("successMsg", "打卡成功，状态：" + attendance.getStatus());
+            return "redirect:/student/dashboard";
+        } catch (DataIntegrityViolationException e) {
+            redirectAttributes.addFlashAttribute("errorMsg", "打卡失败：记录冲突，请刷新页面后重试。");
+            return "redirect:/attendance/checkIn";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMsg", "打卡失败：" + e.getMessage());
             return "redirect:/attendance/checkIn";
         }
-        String studentNumber = principal == null ? "" : principal.getName();
-        Student student = studentService.getStudentByStudentNumber(studentNumber);
-        if (student == null) {
-            redirectAttributes.addFlashAttribute("errorMsg", "未找到学生信息，请先维护学生档案。");
-            return "redirect:/attendance/checkIn";
-        }
-
-        CourseOption course = findCourse(courseId);
-        if (course == null) {
-            redirectAttributes.addFlashAttribute("errorMsg", "课程不存在，请重新选择。");
-            return "redirect:/attendance/checkIn";
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime classStart = LocalDate.now().atTime(course.startTime());
-        LocalDateTime windowStart = classStart.minusMinutes(15);
-        LocalDateTime windowEnd = classStart.plusMinutes(30);
-
-        // 时间窗口限制：课程开始前 15 分钟到开始后 30 分钟内允许打卡。
-        if (now.isBefore(windowStart) || now.isAfter(windowEnd)) {
-            redirectAttributes.addFlashAttribute("errorMsg", "当前不在打卡时间窗口内。");
-            return "redirect:/attendance/checkIn";
-        }
-
-        Attendance attendance = new Attendance();
-        attendance.setStudent(student);
-        attendance.setCourseId(course.id());
-        attendance.setCourseName(course.name());
-        attendance.setCheckInTime(now);
-        attendance.setStatus(now.toLocalTime().isAfter(course.startTime()) ? "LATE" : "NORMAL");
-        attendance.setRemark(remark);
-        attendance.setCreateTime(LocalDateTime.now());
-        attendanceService.saveAttendance(attendance);
-
-        redirectAttributes.addFlashAttribute("successMsg", "打卡成功，状态：" + attendance.getStatus());
-        return "redirect:/attendance/list";
     }
 
     /**
@@ -256,7 +280,7 @@ public class AttendancePageController {
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate,
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) Integer courseId,
+            @RequestParam(required = false) Long courseId,
             @RequestParam(required = false) String range,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -328,7 +352,7 @@ public class AttendancePageController {
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate,
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) Integer courseId,
+            @RequestParam(required = false) Long courseId,
             Principal principal,
             Authentication authentication,
             HttpServletResponse response
@@ -388,7 +412,7 @@ public class AttendancePageController {
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate,
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) Integer courseId,
+            @RequestParam(required = false) Long courseId,
             Principal principal,
             Authentication authentication,
             HttpServletResponse response
@@ -475,33 +499,14 @@ public class AttendancePageController {
     }
 
     private List<CourseOption> buildCourses() {
-        // 优先从数据库加载课程，若无则使用默认课程
-        try {
-            List<Course> courses = courseService.getAllCourses();
-            if (courses != null && !courses.isEmpty()) {
-                return courses.stream()
-                        .map(c -> new CourseOption(c.getId().intValue(), c.getName(),
-                                c.getStartTime() != null ? c.getStartTime() : LocalTime.of(8, 0)))
-                        .toList();
-            }
-        } catch (Exception ignored) {
-            // CourseService 不可用时回退到硬编码课程
-        }
-        return List.of(
-                new CourseOption(1, "Java程序设计", LocalTime.of(8, 0)),
-                new CourseOption(2, "数据库原理", LocalTime.of(10, 0)),
-                new CourseOption(3, "Java EE开发", LocalTime.of(14, 0))
-        );
+        return courseService.buildCourseOptions();
     }
 
-    private CourseOption findCourse(Integer courseId) {
-        if (courseId == null) {
-            return null;
-        }
+    private CourseOption findCourse(Long courseId) {
+        if (courseId == null) return null;
         return buildCourses().stream()
-                .filter(course -> course.id().equals(courseId))
-                .findFirst()
-                .orElse(null);
+                .filter(c -> c.id().equals(courseId))
+                .findFirst().orElse(null);
     }
 
     private boolean isTeacher(Authentication authentication) {
@@ -539,15 +544,14 @@ public class AttendancePageController {
     @LogOperation(operation = "IMPORT", target = "Attendance")
     @PostMapping("/attendance/import")
     public String importAttendance(@RequestParam("file") MultipartFile file,
-                                   @RequestParam("courseId") Integer courseId,
+                                   @RequestParam("courseId") Long courseId,
                                    Principal principal,
                                    RedirectAttributes redirectAttributes) {
         if (file.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "请选择要上传的文件");
             return "redirect:/attendance/import";
         }
-        // 根据 courseId 查找课程，不再硬编码
-        CourseOption course = findCourse(courseId);
+        Course course = courseService.getById(courseId);
         if (course == null) {
             redirectAttributes.addFlashAttribute("error", "课程不存在，请重新选择");
             return "redirect:/attendance/import";
@@ -560,7 +564,7 @@ public class AttendancePageController {
                 return "redirect:/attendance/import";
             }
             InputStream is = file.getInputStream();
-            var records = ExcelHelper.parseExcel(is, student, course.id(), course.name());
+            var records = ExcelHelper.parseExcel(is, student, course);
             for (var att : records) {
                 attendanceService.saveAttendance(att);
             }

@@ -3,13 +3,13 @@ spring:
     name: attendance-system
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/attendance_system
-    username: postgres
+    url: jdbc:postgresql://localhost:5432/attendance_db
+    username: attendance_user
     password: 123456
   jpa:
     hibernate:
-      ddl-auto: validate
-    show-sql: true
+      ddl-auto: update
+    show-sql: false
     properties:
       hibernate:
         format_sql: true

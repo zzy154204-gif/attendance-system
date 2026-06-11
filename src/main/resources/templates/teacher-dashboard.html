@@ -164,8 +164,117 @@
                 </div>
             </div>
         </div>
+
+        <!-- QR Code Card -->
+        <div class="col-12 mt-3">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-white border-0 pt-3 pb-0">
+                    <h5 class="fw-bold"><i class="bi bi-qr-code me-2 text-primary"></i>课堂签到二维码</h5>
+                    <p class="text-muted small mb-0">学生扫码即可进入系统登录打卡</p>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-auto text-center mb-3 mb-md-0">
+                            <div id="qrcode" class="d-inline-block border rounded-3 p-2 bg-white"></div>
+                        </div>
+                        <div class="col-md">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">访问地址</label>
+                                <div class="input-group">
+                                    <input type="text" id="baseUrl" class="form-control font-monospace"
+                                           placeholder="例如：https://xxx.ngrok-free.app">
+                                    <button class="btn btn-primary" type="button" onclick="generateQR()">
+                                        <i class="bi bi-arrow-repeat"></i> 生成二维码
+                                    </button>
+                                </div>
+                                <small class="text-muted">使用 ngrok 等工具时，在此填入外网访问地址，然后点击生成</small>
+                            </div>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button class="btn btn-outline-secondary btn-sm" onclick="setUrl('/login')">
+                                    <i class="bi bi-box-arrow-in-right"></i> 登录页
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="setUrl('/attendance/checkIn')">
+                                    <i class="bi bi-check-circle"></i> 打卡页
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="useLocalhost()">
+                                    <i class="bi bi-pc-display"></i> 本机地址
+                                </button>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">当前链接：</small>
+                                <code id="currentUrl" class="text-break"></code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+    let qrCode = null;
+
+    function getBaseUrl() {
+        // 返回当前页面的 origin，供 ngrok 等外网使用
+        return window.location.origin;
+    }
+
+    function generateQR() {
+        const input = document.getElementById('baseUrl');
+        let base = input.value.trim();
+        if (!base) {
+            base = getBaseUrl();
+            input.value = base;
+        }
+        // 去掉末尾斜杠
+        base = base.replace(/\/+$/, '');
+        const targetUrl = base + '/login';
+        document.getElementById('currentUrl').textContent = targetUrl;
+
+        const container = document.getElementById('qrcode');
+        container.innerHTML = '';
+        qrCode = new QRCode(container, {
+            text: targetUrl,
+            width: 220,
+            height: 220,
+            colorDark: '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+        });
+    }
+
+    function setUrl(path) {
+        const input = document.getElementById('baseUrl');
+        const base = (input.value.trim() || getBaseUrl()).replace(/\/+$/, '');
+        const targetUrl = base + path;
+        document.getElementById('currentUrl').textContent = targetUrl;
+
+        const container = document.getElementById('qrcode');
+        container.innerHTML = '';
+        qrCode = new QRCode(container, {
+            text: targetUrl,
+            width: 220,
+            height: 220,
+            colorDark: '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+        });
+    }
+
+    function useLocalhost() {
+        const input = document.getElementById('baseUrl');
+        input.value = window.location.origin;
+        generateQR();
+    }
+
+    // 页面加载时自动生成
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('baseUrl').value = getBaseUrl();
+        generateQR();
+    });
+</script>
 
 </body>
 </html>

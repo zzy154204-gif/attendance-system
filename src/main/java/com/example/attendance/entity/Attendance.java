@@ -10,22 +10,21 @@ import java.time.LocalDateTime;
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "attendance") // 明确指定数据库表名为 attendance
+@Table(name = "attendance")
 public class Attendance {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // 设置自增主键
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private LocalDateTime checkInTime; // 签到时间
+    private LocalDateTime checkInTime;
 
-    private String status; // 状态：比如 "正常", "迟到", "缺勤"
+    private String status;
 
-    @Column(name = "course_id")
-    private Integer courseId;
-
-    @Column(name = "course_name", length = 100)
-    private String courseName;
+    /** 关联课程（外键） */
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "course_id")
+    private Course course;
 
     @Column(length = 200)
     private String remark;
@@ -33,8 +32,18 @@ public class Attendance {
     @Column(name = "create_time")
     private LocalDateTime createTime;
 
-    // 【核心重点】建立与 Student 的关联
-    @ManyToOne(fetch = FetchType.LAZY) // 设置懒加载，提高性能
-    @JoinColumn(name = "student_id")   // 在数据库表中生成的物理外键列名
-    private Student student;           // 直接引用 Student 对象，而不是只存一个 ID
+    /** 关联学生（外键） */
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "student_id")
+    private Student student;
+
+    /** 便捷方法：获取课程名称，避免模板/导出空指针 */
+    public String getCourseName() {
+        return course != null ? course.getName() : null;
+    }
+
+    /** 便捷方法：获取课程 ID */
+    public Long getCourseId() {
+        return course != null ? course.getId() : null;
+    }
 }

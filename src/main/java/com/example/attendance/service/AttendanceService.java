@@ -15,24 +15,10 @@ import java.util.List;
  */
 public interface AttendanceService {
 
-    /** 获取学生端 Dashboard 统计数据 */
     StudentDashboardStats getStudentStats(Long studentId);
 
-    /** 获取教师端 Dashboard 统计数据 */
     TeacherDashboardStats getTeacherStats();
-    /**
-     * 分页查询考勤记录。
-     *
-     * @param studentNumber 学号过滤
-     * @param status 考勤状态过滤
-     * @param startTime 起始签到时间
-     * @param endTime 结束签到时间
-     * @param page 页码（从 0 开始）
-     * @param size 每页大小
-     * @param sortBy 排序字段
-     * @param direction 排序方向（asc/desc）
-     * @return 分页结果
-     */
+
     AttendancePageResponse queryAttendances(
             String studentNumber,
             String status,
@@ -44,35 +30,22 @@ public interface AttendanceService {
             String direction
     );
 
-    /**
-     * 保存考勤记录。
-     *
-     * @param attendance 考勤实体
-     * @return 保存后的实体
-     */
     Attendance saveAttendance(Attendance attendance);
 
-    /**
-     * 分页查询考勤记录（页面使用）。
-     */
     Page<Attendance> findAttendancePage(
             String studentNumber,
             String status,
-            Integer courseId,
+            Long courseId,
             LocalDateTime startTime,
             LocalDateTime endTime,
             Pageable pageable
     );
 
-    /**
-     * 查询考勤记录（导出使用）。
-     */
     List<Attendance> findAttendanceList(
             String studentNumber,
             String status,
-            Integer courseId,
+            Long courseId,
             LocalDateTime startTime,
             LocalDateTime endTime
     );
 }
-

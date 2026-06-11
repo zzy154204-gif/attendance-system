@@ -39,6 +39,7 @@
                 <tr>
                     <th>课程代码</th>
                     <th>课程名称</th>
+                    <th>班级名称</th>
                     <th>授课教师</th>
                     <th>教室</th>
                     <th>上课时间</th>
@@ -52,6 +53,7 @@
                 <tr th:each="course : ${courses}">
                     <td th:text="${course.code}">CS101</td>
                     <td th:text="${course.name}">Java程序设计</td>
+                    <td th:text="${course.className}">软件工程1班</td>
                     <td th:text="${course.teacherName}">张老师</td>
                     <td th:text="${course.classroom}">A101</td>
                     <td th:text="${course.startTime}">08:00</td>
@@ -82,7 +84,7 @@
                     </td>
                 </tr>
                 <tr th:if="${#lists.isEmpty(courses)}">
-                    <td colspan="9" class="text-center text-muted py-4">
+                    <td colspan="10" class="text-center text-muted py-4">
                         <i class="bi bi-inbox fs-3 d-block mb-2"></i>暂无课程信息，请先添加课程
                     </td>
                 </tr>
