@@ -107,7 +107,10 @@
                     <release>${java.version}</release>
                     <source>21</source>
                     <target>21</target>
-                    <compilerArgs>--enable-preview</compilerArgs>
+                    <compilerArgs>
+                        <compilerArg>--enable-preview</compilerArg>
+                        <compilerArg>-parameters</compilerArg>
+                    </compilerArgs>
                 </configuration>
             </plugin>
 

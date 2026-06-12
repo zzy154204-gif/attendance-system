@@ -51,9 +51,9 @@
                     <td th:text="${student.studentNumber}">2023001</td>
                     <td th:text="${student.name}">张三</td>
                     <td th:text="${student.clazz}">软件工程1班</td>
-                    <td th:text="${student.gender}">男</td>
-                    <td th:text="${student.birthDate}">2000-01-01</td>
-                    <td th:text="${student.contact}">13800000000</td>
+                    <td th:text="${student.gender} ?: '-'">男</td>
+                    <td th:text="${student.birthDate} ?: '-'">2000-01-01</td>
+                    <td th:text="${student.contact} ?: '-'">13800000000</td>
                     <td>
                         <a class="btn btn-sm btn-outline-primary" th:href="@{/student/edit/{id}(id=${student.id})}">
                             <i class="bi bi-pencil"></i> 编辑

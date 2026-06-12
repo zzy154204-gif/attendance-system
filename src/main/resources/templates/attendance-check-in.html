@@ -26,9 +26,11 @@
                         <option th:each="course : ${courses}"
                                 th:value="${course.id}"
                                 th:text="${course.name} + '（' + ${course.startTime} + ' 开始）'">
-                            Java程序设计
                         </option>
                     </select>
+                    <div class="form-text text-warning" th:if="${#lists.isEmpty(courses)}">
+                        ⚠️ 暂无可选课程，请先由教师在「课程管理」中添加课程。
+                    </div>
                 </div>
 
                 <div class="mb-3">

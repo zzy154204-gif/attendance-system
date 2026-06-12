@@ -10,11 +10,15 @@ import com.example.attendance.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 @Service
 public class UserServiceImpl implements UserService {
+
+    private static final Logger log = LoggerFactory.getLogger(UserServiceImpl.class);
 
     @Autowired
     private UserDao userDao;
@@ -57,33 +61,45 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User register(RegisterRequest request) {
-        // 注册功能添加：先校验用户名是否重复，再加密密码后入库。
+        // 1. 校验用户名是否重复
         User existing = userDao.findByUsername(request.username());
         if (existing != null) {
             throw new IllegalArgumentException("用户名已存在");
         }
 
-        String normalizedRealName = request.realName();
-        if (normalizedRealName == null || normalizedRealName.isBlank()) {
-            normalizedRealName = request.username();
+        // 2. 姓名默认用用户名
+        String realName = request.realName();
+        if (realName == null || realName.isBlank()) {
+            realName = request.username();
         }
 
+        // 3. 保存 User
         User user = new User();
         user.setUsername(request.username());
         user.setPassword(passwordEncoder.encode(request.password()));
-        user.setRealName(normalizedRealName);
+        user.setRealName(realName);
         user.setRole(normalizeRole(request.role()));
-
         User savedUser = userDao.save(user);
 
-        // 学生角色注册时，自动创建对应的 Student 记录
+        // 4. 学生角色自动创建 Student 记录（失败不影响注册）
         if ("STUDENT".equals(savedUser.getRole())) {
-            Student studentExisting = studentDao.findByStudentNumber(savedUser.getUsername());
-            if (studentExisting == null) {
-                Student student = new Student();
-                student.setStudentNumber(savedUser.getUsername());
-                student.setName(normalizedRealName);
-                studentDao.save(student);
+            try {
+                Student studentExisting = studentDao.findByStudentNumber(savedUser.getUsername());
+                if (studentExisting == null) {
+                    Student student = new Student();
+                    student.setStudentNumber(savedUser.getUsername());
+                    student.setName(realName);
+                    student.setGender("");
+                    student.setContact("");
+                    student.setClazz("");
+                    student.setBirthDate(java.time.LocalDate.of(2000, 1, 1));
+                    studentDao.save(student);
+                    log.info("注册时自动创建 Student 成功：{}", savedUser.getUsername());
+                }
+            } catch (Exception e) {
+                // Student 创建失败不阻断注册，后续打卡时会兜底创建
+                log.error("自动创建 Student 失败（不影响注册）：username={}, error={}",
+                        savedUser.getUsername(), e.getMessage());
             }
         }
 
@@ -92,7 +108,6 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User registerWithConfirm(String username, String password, String confirmPassword, String role) {
-        // 注册页面校验添加：确认两次密码一致后再调用注册逻辑。
         if (username == null || username.isBlank()) {
             throw new IllegalArgumentException("用户名不能为空");
         }
@@ -102,7 +117,6 @@ public class UserServiceImpl implements UserService {
         if (!password.equals(confirmPassword)) {
             throw new IllegalArgumentException("两次输入的密码不一致");
         }
-        // 页面注册未填写姓名时，用用户名作为默认展示名。
         RegisterRequest request = new RegisterRequest(username, password, username, normalizeRole(role));
         return register(request);
     }

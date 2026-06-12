@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*; // 注意：如果是Spring Boot 3.x，使用jakarta
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import org.springframework.format.annotation.DateTimeFormat;
 import lombok.Data;
 
@@ -31,15 +30,12 @@ public class Student {
     private String clazz;
 
     @Column(length = 10)
-    @NotBlank(message = "gender 不能为空")
     private String gender;
 
-    @NotNull(message = "birthDate 不能为空")
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     private java.time.LocalDate birthDate;
 
     @Column(length = 50)
-    @NotBlank(message = "contact 不能为空")
     private String contact;
     // 在 Student 类中添加
     @OneToMany(mappedBy = "student", cascade = CascadeType.ALL)

@@ -25,6 +25,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.security.core.Authentication;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -45,6 +47,8 @@ import com.example.attendance.service.ExcelHelper;
  */
 @Controller
 public class AttendancePageController {
+
+    private static final Logger log = LoggerFactory.getLogger(AttendancePageController.class);
 
     @Autowired
     private UserService userService;
@@ -80,20 +84,23 @@ public class AttendancePageController {
     @PostMapping("/register")
     public String register(RegisterForm form, Model model) {
         try {
-            userService.registerWithConfirm(form.username(), form.password(), form.confirmPassword(), form.role());
+            userService.registerWithConfirm(form.getUsername(), form.getPassword(), form.getConfirmPassword(), form.getRole());
             return "redirect:/login";
         } catch (IllegalArgumentException ex) {
+            log.warn("注册参数异常：{}", ex.getMessage());
             model.addAttribute("errorMsg", ex.getMessage());
             model.addAttribute("form", form);
             return "register";
         } catch (DataIntegrityViolationException ex) {
             // 注册失败兜底：处理数据库约束错误，避免直接 500。
+            log.error("注册时数据库约束冲突", ex);
             model.addAttribute("errorMsg", "注册失败：用户名已存在或数据不合法");
             model.addAttribute("form", form);
             return "register";
         } catch (Exception ex) {
             // 兜底异常：提供友好提示并保留表单输入。
-            model.addAttribute("errorMsg", "注册失败，请稍后再试");
+            log.error("注册时发生未知异常", ex);
+            model.addAttribute("errorMsg", "注册失败：" + ex.getMessage());
             model.addAttribute("form", form);
             return "register";
         }
@@ -195,7 +202,7 @@ public class AttendancePageController {
     }
 
     /**
-     * 提交打卡：检查时间窗口并写入考勤记录。
+     * 提交打卡：签到即成功，不受时间窗口限制。
      */
     @LogOperation(operation = "CHECK_IN", target = "Attendance")
     @PostMapping("/attendance/checkIn")
@@ -218,6 +225,10 @@ public class AttendancePageController {
                 student = new Student();
                 student.setStudentNumber(studentNumber);
                 student.setName(studentNumber);
+                student.setGender("");
+                student.setContact("");
+                student.setClazz("");
+                student.setBirthDate(java.time.LocalDate.of(2000, 1, 1));
                 studentService.addStudent(student);
             }
 
@@ -229,6 +240,7 @@ public class AttendancePageController {
                 return "redirect:/attendance/checkIn";
             }
 
+            // 同一天同一门课只允许打一次卡
             LocalDateTime dayStart = LocalDate.now().atStartOfDay();
             LocalDateTime dayEnd = LocalDate.now().plusDays(1).atStartOfDay();
             List<Attendance> todayAttendances = attendanceService.findAttendanceList(
@@ -238,30 +250,16 @@ public class AttendancePageController {
                 return "redirect:/attendance/checkIn";
             }
 
-            LocalDateTime now = LocalDateTime.now();
-            LocalTime startTime = course.getStartTime() != null ? course.getStartTime() : LocalTime.of(8, 0);
-            LocalTime endTime = course.getEndTime() != null ? course.getEndTime() : startTime.plusHours(2);
-            LocalDateTime windowStart = LocalDate.now().atTime(startTime);
-            LocalDateTime windowEnd = LocalDate.now().atTime(endTime);
-
-            if (now.isBefore(windowStart) || now.isAfter(windowEnd)) {
-                String windowInfo = String.format("打卡窗口：%s ~ %s（课程 %s）",
-                        windowStart.toLocalTime(), windowEnd.toLocalTime(),
-                        course.getName());
-                redirectAttributes.addFlashAttribute("errorMsg", "当前不在课程时间范围内。" + windowInfo);
-                return "redirect:/attendance/checkIn";
-            }
-
             Attendance attendance = new Attendance();
             attendance.setStudent(student);
             attendance.setCourse(course);
-            attendance.setCheckInTime(now);
-            attendance.setStatus(now.toLocalTime().isAfter(startTime) ? "LATE" : "NORMAL");
+            attendance.setCheckInTime(LocalDateTime.now());
+            attendance.setStatus("NORMAL");
             attendance.setRemark(remark);
             attendance.setCreateTime(LocalDateTime.now());
             attendanceService.saveAttendance(attendance);
 
-            redirectAttributes.addFlashAttribute("successMsg", "打卡成功，状态：" + attendance.getStatus());
+            redirectAttributes.addFlashAttribute("successMsg", "打卡成功");
             return "redirect:/student/dashboard";
         } catch (DataIntegrityViolationException e) {
             redirectAttributes.addFlashAttribute("errorMsg", "打卡失败：记录冲突，请刷新页面后重试。");
@@ -319,7 +317,8 @@ public class AttendancePageController {
         if (!isTeacherOrAdmin(authentication)) {
             String studentNumber = principal == null ? "" : principal.getName();
             Student student = studentService.getStudentByStudentNumber(studentNumber);
-            filterStudentNumber = student == null ? null : student.getStudentNumber();
+            // 若 Student 记录缺失，直接按用户名（学号）过滤，避免数据隔离泄露
+            filterStudentNumber = student != null ? student.getStudentNumber() : studentNumber;
         }
 
         PageRequest pageable = PageRequest.of(Math.max(page - 1, 0), size, Sort.by(Sort.Direction.DESC, "checkInTime"));
@@ -367,7 +366,8 @@ public class AttendancePageController {
         if (!isTeacherOrAdmin(authentication)) {
             String studentNumber = principal == null ? "" : principal.getName();
             Student student = studentService.getStudentByStudentNumber(studentNumber);
-            filterStudentNumber = student == null ? null : student.getStudentNumber();
+            // 若 Student 记录缺失，直接按用户名（学号）过滤，避免数据隔离泄露
+            filterStudentNumber = student != null ? student.getStudentNumber() : studentNumber;
         }
 
         List<Attendance> records = attendanceService.findAttendanceList(
@@ -427,7 +427,8 @@ public class AttendancePageController {
         if (!isTeacherOrAdmin(authentication)) {
             String studentNumber = principal == null ? "" : principal.getName();
             Student student = studentService.getStudentByStudentNumber(studentNumber);
-            filterStudentNumber = student == null ? null : student.getStudentNumber();
+            // 若 Student 记录缺失，直接按用户名（学号）过滤，避免数据隔离泄露
+            filterStudentNumber = student != null ? student.getStudentNumber() : studentNumber;
         }
 
         List<Attendance> records = attendanceService.findAttendanceList(

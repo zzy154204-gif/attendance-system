@@ -42,25 +42,22 @@
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label">性别 <span class="text-danger">*</span></label>
-                                <select class="form-select" th:field="*{gender}" required>
+                                <label class="form-label">性别</label>
+                                <select class="form-select" th:field="*{gender}">
                                     <option value="">请选择</option>
                                     <option value="男">男</option>
                                     <option value="女">女</option>
                                 </select>
-                                <div class="text-danger small" th:if="${#fields.hasErrors('gender')}" th:errors="*{gender}"></div>
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label">出生日期 <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" th:field="*{birthDate}" required>
-                                <div class="text-danger small" th:if="${#fields.hasErrors('birthDate')}" th:errors="*{birthDate}"></div>
+                                <label class="form-label">出生日期</label>
+                                <input type="date" class="form-control" th:field="*{birthDate}">
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label">联系方式 <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" th:field="*{contact}" required>
-                                <div class="text-danger small" th:if="${#fields.hasErrors('contact')}" th:errors="*{contact}"></div>
+                                <label class="form-label">联系方式</label>
+                                <input type="text" class="form-control" th:field="*{contact}">
                             </div>
                         </div>
 

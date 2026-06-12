@@ -36,6 +36,10 @@ public class Course {
     @Column(name = "teacher_name", length = 50)
     private String teacherName;
 
+    /** 教师ID（数据库要求 NOT NULL，默认 0） */
+    @Column(name = "teacher_id", nullable = false)
+    private Long teacherId = 0L;
+
     /** 教室 */
     @Column(length = 50)
     private String classroom;

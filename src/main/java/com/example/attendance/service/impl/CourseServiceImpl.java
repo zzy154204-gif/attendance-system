@@ -94,18 +94,10 @@ public class CourseServiceImpl implements CourseService {
     @Transactional(readOnly = true)
     public List<CourseOption> buildCourseOptions() {
         List<Course> courses = courseRepository.findAll();
-        if (!courses.isEmpty()) {
-            return courses.stream()
-                    .map(c -> new CourseOption(c.getId(), c.getName(),
-                            c.getStartTime() != null ? c.getStartTime() : LocalTime.of(8, 0)))
-                    .toList();
-        }
-        // 数据库无课程时返回默认课程
-        return List.of(
-                new CourseOption(1L, "Java程序设计", LocalTime.of(8, 0)),
-                new CourseOption(2L, "数据库原理", LocalTime.of(10, 0)),
-                new CourseOption(3L, "Java EE开发", LocalTime.of(14, 0))
-        );
+        return courses.stream()
+                .map(c -> new CourseOption(c.getId(), c.getName(),
+                        c.getStartTime() != null ? c.getStartTime() : LocalTime.of(8, 0)))
+                .toList();
     }
 
     private void syncCourseId(Course course) {
